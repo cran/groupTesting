@@ -1,0 +1,16 @@
+2d2e7f5417633fc3e05179f24ce12867 *DESCRIPTION
+19e4497639be28ffc4dc737e66e5e2d7 *NAMESPACE
+67e9f5c036f34456c44ea590b83e93b2 *R/gtcode.R
+e7110e7f48030f35698eb91d91a4e528 *R/linkfns.R
+a449c57bfef435657267f231eba233ca *R/propEM.R
+b6523d7dfb32c95639cced2d36b2c0fc *R/regEM.R
+c0f4895459d8677dec2f2ad4600141f0 *R/waldTest.R
+e30b5e61eb92e83201c46850741bfaec *man/array.gt.simulation.Rd
+153f56fbddfd60e6bf7ac2fdd424b0c5 *man/glm.gt.Rd
+005753654cb1ba175c4a66d57e5d166e *man/glmLink.Rd
+98cd54c4cb84265e55b4bb7c982cf39e *man/hier.gt.simulation.Rd
+2140f47f6eaa073f0b042aad9ed5da82 *man/prop.gt.Rd
+148ef1e8336716c9208b7e77ad53fbef *man/waldTest.Rd
+9b11ec0e9f983e39a5cf915d5002dc6f *src/Makevars.txt
+cb44d44d2eb4d6b7ffd7d32607f5968e *src/gtestingc.c
+1f0efc225a8218d7aad4216e8597ab7a *src/gtestingf.f95
