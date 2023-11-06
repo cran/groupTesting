@@ -20,6 +20,9 @@ A list with components:
 This function provides characteristics of common link functions (logit, probit, and comlementary log-log). Specifically, based on the link name, the function with its inverse, first derivative, and second derivative is provided.
 }
 \examples{
+
+library(groupTesting)
+
 ## Try:
 glmLink("logit")
 

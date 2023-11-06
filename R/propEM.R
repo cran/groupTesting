@@ -1,6 +1,6 @@
 #' EM Algorithm to Estimate the Prevalence of a Disease from Group Testing Data
 #'
-#' This function implements an expectation-maximization (EM) algorithm to find the maximum likelihood estimate (MLE) of a disease prevalence, p, based on group testing data. The EM algorithm can model pooling data observed from \strong{any} group testing protocol used in practice, including hierarchical and array testing (Kim et al., 2007).
+#' This function implements an expectation-maximization (EM) algorithm to find the maximum likelihood estimate (MLE) of a disease prevalence, p, based on group testing data. The EM algorithm, which is outlined in Warasi (2021), can model pooling data observed from \strong{any} group testing protocol used in practice, including hierarchical and array testing (Kim et al., 2007).
 #'
 #' @useDynLib groupTesting, .registration=TRUE
 #' 
@@ -57,15 +57,18 @@
 #' 
 #' Louis T. (1982). Finding the Observed Information Matrix when Using the EM algorithm. \emph{Journal of the Royal Statistical Society: Series B}, 44:226-233.
 #' 
+#' Warasi M. (2021). groupTesting: An R Package for Group Testing Estimation. \emph{Communications in Statistics-Simulation and Computation}. Published online on Dec 9, 2021.
+#' Available at https://www.tandfonline.com/doi/full/10.1080/03610918.2021.2009867
+#' 
 #' @seealso
 #' \code{\link{hier.gt.simulation}} and \code{\link{array.gt.simulation}} for group testing data simulation, and \code{\link{glm.gt}} for group testing regression models.
 #'
 #' @examples
 #' 
-#' library("groupTesting")
+#' library(groupTesting)
 #' 
-#' ## To illustrate 'prop.gt', we use data simulated  
-#' ## by the R functions 'hier.gt.simulation' and 'array.gt.simulation'.
+#' ## To illustrate 'prop.gt', we use data simulated by 
+#' ## the R functions 'hier.gt.simulation' and 'array.gt.simulation'.
 #' 
 #' ## The simulated data-structures are consistent  
 #' ## with the data-structure required for 'gtData'.
@@ -277,7 +280,7 @@ prop.gt <- function(p0,gtData,covariance=FALSE,nburn=2000,ngit=5000,maxit=200,to
     }
     s <- s + 1
     if(tracing){
-      print(c(s-1,p1))
+      cat(s-1, p1, "\n")
     }
   }
 

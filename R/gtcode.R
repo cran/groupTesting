@@ -48,6 +48,8 @@
 #'
 #' @examples
 #'
+#' library(groupTesting)
+#'
 #' ## Example 1: Two-stage hierarchical (Dorfman) testing
 #' N <- 50              # Sample size
 #' psz <- c(5, 1)       # Pool sizes used in stages 1 and 2
@@ -293,6 +295,8 @@ hier.gt.simulation <- function(N,p=0.10,S,psz,Se,Sp,assayID,Yt=NULL){
 #' \code{\link{hier.gt.simulation}} for simulation of the hierarchical group testing data.
 #'
 #' @examples
+#'
+#' library(groupTesting)
 #'
 #' ## Example 1: Square Array without Master Pool Testing (i.e., 2-Stage Array)
 #' N <- 48              # Sample size

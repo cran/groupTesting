@@ -26,6 +26,8 @@
 #'
 #' @examples
 #' 
+#' library(groupTesting)
+#' 
 #' ## Example 1
 #' # Parameter: p (proportion)
 #' MLE <- 0.42

@@ -57,6 +57,8 @@ When available, the individual true disease statuses (1 for positive and 0 for n
 }
 \examples{
 
+library(groupTesting)
+
 ## Example 1: Square Array without Master Pool Testing (i.e., 2-Stage Array)
 N <- 48              # Sample size
 protocol <- "A2"     # 2-stage array

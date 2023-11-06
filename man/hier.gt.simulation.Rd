@@ -54,6 +54,8 @@ When available, the individual true disease statuses (1 for positive and 0 for n
 }
 \examples{
 
+library(groupTesting)
+
 ## Example 1: Two-stage hierarchical (Dorfman) testing
 N <- 50              # Sample size
 psz <- c(5, 1)       # Pool sizes used in stages 1 and 2

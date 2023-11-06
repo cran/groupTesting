@@ -20,11 +20,11 @@ contains
     real(kind = c_double), intent(in), dimension(N,GI)      :: U
     integer(kind = c_int), intent(inout), dimension(N)      :: ret
 
-    integer        :: g, i, j, k, s
-    integer        :: Z1, sm1, gma1
-    real(kind = 8) :: zeta, zeta0, zeta1
-    integer        :: pid, psz
-    real(kind = 8) :: Se1, Sp1, RSe1, RSp1
+    integer           :: g, i, j, k, s
+    integer           :: Z1, sm1, gma1
+    real(kind(1.0d0)) :: zeta, zeta0, zeta1
+    integer           :: pid, psz
+    real(kind(1.0d0)) :: Se1, Sp1, RSe1, RSp1
 
     do i = 1, N
       ret(i) = 0	
@@ -80,15 +80,15 @@ contains
     real(kind = c_double), intent(in), dimension(N,GI)      :: U
     real(kind = c_double), intent(out)                      :: ret
 
-    integer        :: g, i, j, k, s
-    integer        :: Z1, sm1, gma1
-    real(kind = 8) :: zeta, zeta0, zeta1
-    integer        :: pid, psz
-    real(kind = 8) :: Se1, Sp1, RSe1, RSp1
+    integer           :: g, i, j, k, s
+    integer           :: Z1, sm1, gma1
+    real(kind(1.0d0)) :: zeta, zeta0, zeta1
+    integer           :: pid, psz
+    real(kind(1.0d0)) :: Se1, Sp1, RSe1, RSp1
     integer, dimension(N) :: V
     integer               :: ytsm
-    real(kind = 8)        :: Elc, dlc, Eyi, tmp1, dlcmat(GI-a)
-    real(kind = 8)        :: covr, d2Q
+    real(kind(1.0d0))     :: Elc, dlc, Eyi, tmp1, dlcmat(GI-a)
+    real(kind(1.0d0))     :: covr, d2Q
 
     V = 0
     covr = 0
@@ -163,11 +163,11 @@ contains
     real(kind = c_double), intent(in), dimension(N,GI)      :: U
     integer(kind = c_int), intent(inout), dimension(N)      :: ret
 
-    integer        :: g, i, j, k, s
-    integer        :: Z1, sm1, gma1
-    real(kind = 8) :: zeta, zeta0, zeta1
-    integer        :: pid, psz
-    real(kind = 8) :: Se1, Sp1, RSe1, RSp1
+    integer           :: g, i, j, k, s
+    integer           :: Z1, sm1, gma1
+    real(kind(1.0d0)) :: zeta, zeta0, zeta1
+    integer           :: pid, psz
+    real(kind(1.0d0)) :: Se1, Sp1, RSe1, RSp1
 
     do i = 1, N
       ret(i) = 0	
@@ -226,19 +226,19 @@ contains
     real(kind = c_double), intent(in), dimension(N,GI)         :: U
     real(kind = c_double), intent(out), dimension(blen,blen)   :: ret
 
-    real(kind = 8), dimension(blen,blen) :: d2Q
-    real(kind = 8), dimension(blen,blen) :: covr
+    real(kind(1.0d0)), dimension(blen,blen) :: d2Q
+    real(kind(1.0d0)), dimension(blen,blen) :: covr
     integer, dimension(N)                :: V
     integer                              :: g, i, j, k, s, c, d
     integer                              :: Z1, sm1, gma1
-    real(kind = 8)                       :: zeta, zeta0, zeta1
+    real(kind(1.0d0))                       :: zeta, zeta0, zeta1
     integer                              :: pid, psz
-    real(kind = 8)                       :: Se1, Sp1, RSe1, RSp1
-    real(kind = 8), dimension(blen)      :: Elc
-    real(kind = 8), dimension(blen)      :: dlc
-    real(kind = 8)                       :: Eyi, tmp1, tmp2, lctmp1, d2pdb
-    real(kind = 8), dimension(blen)      :: dpdb
-    real(kind = 8), dimension(GI-a,blen) :: dlcmat
+    real(kind(1.0d0))                       :: Se1, Sp1, RSe1, RSp1
+    real(kind(1.0d0)), dimension(blen)      :: Elc
+    real(kind(1.0d0)), dimension(blen)      :: dlc
+    real(kind(1.0d0))                       :: Eyi, tmp1, tmp2, lctmp1, d2pdb
+    real(kind(1.0d0)), dimension(blen)      :: dpdb
+    real(kind(1.0d0)), dimension(GI-a,blen) :: dlcmat
 
     V = 0
     Elc = 0.0

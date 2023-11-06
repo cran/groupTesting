@@ -28,6 +28,8 @@ Suppose that Q tests are to be performed jointly on the K by 1 parameter vector 
 }
 \examples{
 
+library(groupTesting)
+
 ## Example 1
 # Parameter: p (proportion)
 MLE <- 0.42

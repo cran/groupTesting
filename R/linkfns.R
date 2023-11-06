@@ -16,6 +16,9 @@
 #' @export
 #' 
 #' @examples
+#' 
+#' library(groupTesting)
+#' 
 #' ## Try:
 #' glmLink("logit")
 #' 
