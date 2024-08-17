@@ -1,6 +1,6 @@
 #' EM Algorithm for Fitting Regression Models to Group Testing Data
 #'
-#' This function implements an expectation-maximization (EM) algorithm to fit regression models to group testing data, where pooled responses are related to individual covariates through a link function in the generalized linear model (GLM) family. The EM algorithm, which is outlined in Warasi (2021), finds the maximum likelihood estimate (MLE) for the vector of regression coefficients, \strong{beta}. The EM algorithm can model pooling data observed from \strong{any} group testing protocol used in practice, including hierarchical and array testing (Kim et al., 2007).
+#' This function implements an expectation-maximization (EM) algorithm to fit regression models to group testing data, where pooled responses are related to individual covariates through a link function in the generalized linear model (GLM) family. The EM algorithm, which is outlined in Warasi (2023), finds the maximum likelihood estimate (MLE) for the vector of regression coefficients, \strong{beta}. The EM algorithm can model pooling data observed from \strong{any} group testing protocol used in practice, including hierarchical and array testing (Kim et al., 2007).
 #'
 #' @useDynLib groupTesting, .registration=TRUE
 #'
@@ -72,8 +72,7 @@
 #' 
 #' Vansteelandt S, Goetghebeur E, and Verstraeten T. (2000). Regression Models for Disease Prevalence with Diagnostic Tests on Pools of Serum Samples. \emph{Biometrics}, 56:1126-1133. 
 #' 
-#' Warasi M. (2021). groupTesting: An R Package for Group Testing Estimation. \emph{Communications in Statistics-Simulation and Computation}. Published online on Dec 9, 2021.
-#' Available at https://www.tandfonline.com/doi/full/10.1080/03610918.2021.2009867
+#' Warasi M. (2023). groupTesting: An R Package for Group Testing Estimation. \emph{Communications in Statistics-Simulation and Computation}, 52:6210-6224.
 #' 
 #' @seealso
 #' \code{\link{hier.gt.simulation}} and \code{\link{array.gt.simulation}} for group testing data simulation, and \code{\link{prop.gt}} for estimation of a disease prevalence from group testing data.

@@ -62,7 +62,7 @@ A list with components:
 \item{summary}{Estimation summary with Wald confidence interval.}
 }
 \description{
-This function implements an expectation-maximization (EM) algorithm to fit regression models to group testing data, where pooled responses are related to individual covariates through a link function in the generalized linear model (GLM) family. The EM algorithm, which is outlined in Warasi (2021), finds the maximum likelihood estimate (MLE) for the vector of regression coefficients, \strong{beta}. The EM algorithm can model pooling data observed from \strong{any} group testing protocol used in practice, including hierarchical and array testing (Kim et al., 2007).
+This function implements an expectation-maximization (EM) algorithm to fit regression models to group testing data, where pooled responses are related to individual covariates through a link function in the generalized linear model (GLM) family. The EM algorithm, which is outlined in Warasi (2023), finds the maximum likelihood estimate (MLE) for the vector of regression coefficients, \strong{beta}. The EM algorithm can model pooling data observed from \strong{any} group testing protocol used in practice, including hierarchical and array testing (Kim et al., 2007).
 }
 \details{
 \code{gtData} must be specified as follows. Columns 1-5 consist of the pooled test outcomes (0 for negative and 1 for positive), pool sizes, pool-specific sensitivities, pool-specific specificities, and assay identification (ID) numbers, respectively. From column 6 onward, the pool member ID numbers need to be specified. Note that the ID numbers must start with 1 and increase consecutively up to \code{N}, the total number of individuals tested. \strong{For smaller pools, incomplete ID numbers must be filled out by -9 or any non-positive numbers} as shown in the example below. The design matrix \code{X} consists of invidual covariate information, such as age, sex, and symptoms, of the pool members located in column 6 onward.\tabular{cccccccccccc}{
@@ -320,8 +320,7 @@ Louis T. (1982). Finding the Observed Information Matrix when Using the EM algor
 
 Vansteelandt S, Goetghebeur E, and Verstraeten T. (2000). Regression Models for Disease Prevalence with Diagnostic Tests on Pools of Serum Samples. \emph{Biometrics}, 56:1126-1133.
 
-Warasi M. (2021). groupTesting: An R Package for Group Testing Estimation. \emph{Communications in Statistics-Simulation and Computation}. Published online on Dec 9, 2021.
-Available at https://www.tandfonline.com/doi/full/10.1080/03610918.2021.2009867
+Warasi M. (2023). groupTesting: An R Package for Group Testing Estimation. \emph{Communications in Statistics-Simulation and Computation}, 52:6210-6224.
 }
 \seealso{
 \code{\link{hier.gt.simulation}} and \code{\link{array.gt.simulation}} for group testing data simulation, and \code{\link{prop.gt}} for estimation of a disease prevalence from group testing data.
