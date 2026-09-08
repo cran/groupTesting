@@ -3,7 +3,7 @@
 #' This function simulates hierarchical group testing data with any number of hierarchical stages.
 #'
 #' @param N The number of individuals to be tested.
-#' @param p A vector of length N consisting of individual disease probabilities.
+#' @param p A scalar or a vector of length N consisting of individual disease probabilities.
 #' @param S The number of stages used in testing, where \code{S} >= 1.
 #' @param psz A vector of pool sizes in stages 1-\code{S}.
 #' @param Se A vector of assay sensitivities in stages 1-\code{S}.
@@ -11,20 +11,18 @@
 #' @param assayID A vector of the identification numbers of the assays used in stages 1-\code{S}.
 #' @param Yt A vector of individual true disease statuses.
 #'
-#' @importFrom stats rbinom
-#'
 #' @details
-#' We consider the \eqn{S}-stage hierarchical testing protocol outlined in Kim et al. (2007). Under this protocol, \eqn{N} individual specimens are first assigned to \eqn{m} non-overlapping pools, where each initial pool size is \eqn{c}; i.e., \eqn{N=mc}. The initial pools are tested in stage 1. If a pooled test is negative, all members in the pool are diagnosed as negative. However, if a pooled test is positive, the pool members are split into non-overlapping subpools to be tested in the next stage. This procedure is continued. Note that individual testing is used in the final stage, \eqn{S}, for case identification.
+#' We consider the \eqn{S}-stage hierarchical testing protocol outlined in Kim et al. (2007). Under this protocol, \eqn{N} individual specimens are first assigned to \eqn{m} non-overlapping pools, where each initial pool size is \eqn{c}; i.e., \eqn{N=mc}. The initial pools are tested in stage 1. If a pooled test is negative, all members in the pool are diagnosed as negative. However, if a pooled test is positive, the pool members are split into non-overlapping subpools to be tested in the next stage. This procedure is continued, while individual testing is typically used in the final stage, \eqn{S}, for case identification purposes. Note that when \eqn{N} is not divisible by \eqn{c}, a smaller remainder pool is used.
 #'
 #' \code{S} is a positive integer, \code{S} >= 1. When \code{S}=1, only the non-overlapping initial pools are tested in stage 1.
 #'
-#' If \code{N} is not divisible by the initial pool size \eqn{c}, we implement the following policy to test the remainder individuals: (1) when \code{S}=1, simply test the remainder pool once as a pooled sample; (2) when \code{S}>1, test the remainder pool based on 2-stage hierarchical testing.
+#' If \code{N} is not divisible by the initial pool size \eqn{c}, we implement the following policy to test the remainder individuals: (1) If \code{S}=1, simply test the remainder pool once as a pooled sample; (2) If \code{S}>1, test the remainder pool based on 2-stage hierarchical testing using the last two values of \code{Se} and \code{Sp}.
 #' 
 #' \code{p} is a vector of individual disease probabilities. When all individuals have the same probability of disease, say, 0.10, p can be specified as p=rep(0.10, N) or p=0.10.
 #'
 #' \code{psz} is a vector of length \code{S}, where the first element is the stage-1 pool size, the second element is the stage-2 pool size, and so on. Pool size at any stage must be divisible by the pool size used at the next stage. For example, \code{psz} can be specified as \code{c(12,3,1)} but not as \code{c(12,5,1)}.
 #'
-#' When \code{psz} is a vector of length 1, test responses are simulated only from the initial pools.
+#' When \code{S=1} (i.e., psz has length 1), only stage-1 testing is performed. 
 #'
 #' \code{Se} is a vector of length \code{S}, where the first element is the sensitivity of the assay used in stage 1, the second element is sensitivity of the assay in stage 2, and so on.
 #'
@@ -51,6 +49,7 @@
 #' library(groupTesting)
 #'
 #' ## Example 1: Two-stage hierarchical (Dorfman) testing
+#' set.seed(123)
 #' N <- 50              # Sample size
 #' psz <- c(5, 1)       # Pool sizes used in stages 1 and 2
 #' S <- 2               # The number of stages
@@ -71,10 +70,11 @@
 #' x1 <- rnorm(N, mean=0, sd=.75)
 #' x2 <- rbinom(N, size=1, prob=0.5)
 #' X <- cbind(1, x1, x2)
-#' pReg <- exp(X%*%param)/(1+exp(X%*%param)) # Logit
+#' pReg <- exp(X%*%param)/(1+exp(X%*%param)) # Inverse logit
 #' hier.gt.simulation(N=N,p=pReg,S=S,psz=psz,Se=Se,Sp=Sp,assayID=assayID)
 #'
 #' ## Example 2: Initial (1-stage) pooled testing data
+#' set.seed(123)
 #' N <- 50
 #' S <- 1
 #' Se <- 0.95
@@ -82,14 +82,14 @@
 #' assayID <- 1
 #'
 #' # (a) Homogeneous population 
-#' pHom <- 0.10   # Overall prevalence
+#' pHom <- 0.10
 #' 
 #' # a(i) Pooled testing
-#' psz <- 5       # pool size    
+#' psz <- 5      
 #' hier.gt.simulation(N,pHom,S,psz,Se,Sp,assayID)
 #'
-#' # a(ii) Inidividual testing
-#' psz <- 1       # pool size    
+#' # a(ii) Individual testing
+#' psz <- 1       
 #' hier.gt.simulation(N,pHom,S,psz,Se,Sp,assayID)
 #'
 #' # (b) Heterogeneous population (regression)
@@ -97,7 +97,7 @@
 #' x1 <- rnorm(N, mean=0, sd=.75)
 #' x2 <- rbinom(N, size=1, prob=0.5)
 #' X <- cbind(1, x1, x2)
-#' pReg <- exp(X%*%param)/(1+exp(X%*%param))  # Logit
+#' pReg <- stats::plogis(drop(X %*% param))
 #' 
 #' # b(i) Pooled testing
 #' psz <- 5
@@ -108,35 +108,82 @@
 #' hier.gt.simulation(N,pReg,S,psz,Se,Sp,assayID)
 #'
 #' ## Example 3: Data with other configurations
+#' set.seed(123)
 #' N <- 48
 #' p <- 0.10
-#' Se <- c(.90, .95, .92, .90, .99)
-#' Sp <- c(.96, .96, .90, .92, .95)
-#' Assay <- 1:5
 #'
-#' # Initial pooled testing, using the first element of Se, Sp & Assay
+#' # Initial pooled testing
 #' pszH1 <- 4
-#' hier.gt.simulation(N=N,p=p,S=1,psz=pszH1,Se=Se,Sp=Sp,assayID=Assay)
+#' hier.gt.simulation(N=N, p=p, S=1, psz=pszH1,
+#'                    Se=.90, Sp=.96, assayID=1)
 #'
-#' pszH2 <- c(4,1)       # Two-stage, using first 2 elements of Se, Sp & Assay
-#' hier.gt.simulation(N=N,p=p,S=2,psz=pszH2,Se=Se,Sp=Sp,assayID=Assay)
+#' # Two-stage hierarchical testing
+#' pszH2 <- c(4,1)
+#' hier.gt.simulation(N=N, p=p, S=2, psz=pszH2,
+#'                    Se=c(.90,.95), Sp=c(.96,.96), 
+#'                    assayID=c(1,2))
 #'
-#' pszH4 <- c(16,8,2,1)  # Four-stage, using first 4 elements of Se, Sp & Assay
-#' hier.gt.simulation(N=N,p=p,S=4,psz=pszH4,Se=Se,Sp=Sp,assayID=Assay)
+#' # Four-stage hierarchical testing
+#' pszH4 <- c(16,8,2,1)
+#' hier.gt.simulation(N=N, p=p, S=4, psz=pszH4,
+#'                    Se=c(.90,.95,.92,.90),
+#'                    Sp=c(.96,.96,.90,.92),
+#'                    assayID=1:4)
 #'
-#' pszH3 <- c(12,2,1)    # Three-stage, using first 3 elements of Se, Sp & Assay
-#' Assay3 <- c(2,1,3)    # Array ID numbers do not need to be in order
-#' hier.gt.simulation(N=N,p=p,S=3,psz=pszH3,Se=Se,Sp=Sp,assayID=Assay3)
+#' # Three-stage testing with assay IDs not in sequential order
+#' pszH3 <- c(12,2,1)
+#' hier.gt.simulation(N=N, p=p, S=3, psz=pszH3,
+#'                    Se=c(.90,.95,.92),
+#'                    Sp=c(.96,.96,.90),
+#'                    assayID=c(2,1,3))
 #'
-#' # Works with a remainder pool of 2 individuals
+#' # Works with a remainder pool
 #' N <- 50
 #' psz <- c(12,2,1)
-#' hier.gt.simulation(N=N,p=p,S=3,psz=psz,Se=Se,Sp=Sp,assayID=Assay)
+#' hier.gt.simulation(N=N, p=p, S=3, psz=psz,
+#'                    Se=c(.90,.95,.92),
+#'                    Sp=c(.96,.96,.90),
+#'                    assayID=c(1,2,3))
+#'
 #'
 hier.gt.simulation <- function(N,p=0.10,S,psz,Se,Sp,assayID,Yt=NULL){
+
+  ## Validating the arguments
+  if(!is.numeric(N) || length(N) != 1L || !is.finite(N) || N <= 0 || N%%1 != 0){
+    stop("N must be a positive integer.")
+  }
+  if(!is.numeric(psz) || length(psz) == 0L || any(!is.finite(psz)) || any(psz <= 0) || any(psz%%1 != 0)){
+    stop("psz must have positive integers.")
+  }
+  if(!is.numeric(S) || length(S) != 1L || !is.finite(S) || S <= 0 || S %% 1 != 0){
+    stop("S must be a positive integer.")
+  }
+  if(S != length(psz)){
+    stop("S must equal length(psz).")
+  }
+  if(N < psz[1]){
+    stop("N must be at least as large as the initial pool size.")
+  }
+  if(length(Se) != S || !is.numeric(Se) || any(!is.finite(Se)) || any(Se < 0) || any(Se > 1)){
+    stop("Se must have S sensitivity values between 0 and 1.")
+  }
+  if(length(Sp) != S || !is.numeric(Sp) || any(!is.finite(Sp)) || any(Sp < 0) || any(Sp > 1)){
+    stop("Sp must have S specificity values between 0 and 1.")
+  }
+  if(!is.numeric(assayID) || length(assayID) != S || any(!is.finite(assayID)) || any(assayID%%1 != 0)){
+    stop("assayID must have S integer values.")
+  }
+  if(is.null(Yt)){
+    if(!is.numeric(p) || any(!is.finite(p)) || !(length(p) == 1L || length(p) == N) || any(p < 0) || any(p > 1)){
+      stop("p must be a scalar probability or a vector of N probabilities.")
+    }
+  }else{
+    if(!is.numeric(Yt) || length(Yt) != N || any(!is.finite(Yt)) || any(Yt != 0 & Yt != 1)){
+      stop("Yt must have N binary values (0 or 1).")
+    }
+  }
+
   c.s <- psz        ## Pool sizes
-  S <- length(c.s)  ## Number of stages
-  if(min(c.s)<=0) stop("Pool size cannot be negative or zero")
   if(S > 1){
     quot <- rep(-9,S-1)
     for(s in 1:(S-1)){quot[s] <- c.s[s]%%c.s[s+1]}
@@ -191,7 +238,7 @@ hier.gt.simulation <- function(N,p=0.10,S,psz,Se,Sp,assayID,Yt=NULL){
   if(S == 1){
     if(Rem > 0){
       rid1 <- (N0+1):N
-      zr1 <- rbinom(1,1,ifelse(sum(Ytil1[rid1])>0,Se[1],1-Sp[1]))
+      zr1 <- stats::rbinom(1,1,ifelse(sum(Ytil1[rid1])>0,Se[1],1-Sp[1]))
       Zmat <- rbind(Zmat,c(zr1,Rem,Se[1],Sp[1],assayID[1],rid1,rep(-9,c.s[1]-Rem)))
       warning("N is not divisible by the initial pool size; a smaller remainder pool is used")
     }
@@ -228,17 +275,17 @@ hier.gt.simulation <- function(N,p=0.10,S,psz,Se,Sp,assayID,Yt=NULL){
       pl.res[(cc[s]+1):cc[s+1]] <- tmp1
     }
     if(Rem == 1){
-      yr1 <- rbinom(1,1,ifelse(Ytil1[N]==1,Se[S],1-Sp[S]))
+      yr1 <- stats::rbinom(1,1,ifelse(Ytil1[N]==1,Se[S],1-Sp[S]))
       Zmat <- rbind(Zmat,c(yr1,1,Se[S],Sp[S],assayID[S],N,rep(-9,c.s[1]-1)))
       if( Rem > 0) warning("N is not divisible by the initial pool size; a smaller remainder pool is used")
     }
     if(Rem > 1){
       rid <- (M*c.s[1]+1):N
       ytr1 <- Ytil1[rid]
-      zr2 <- rbinom(1,1,ifelse(sum(ytr1)>0,Se[S-1],1-Sp[S-1]))
+      zr2 <- stats::rbinom(1,1,ifelse(sum(ytr1)>0,Se[S-1],1-Sp[S-1]))
       Zmat <- rbind(Zmat,c(zr2,Rem,Se[S-1],Sp[S-1],assayID[S-1],rid,rep(-9,c.s[1]-Rem)))
       if(zr2 > 0){
-        yrm1 <- rbinom(Rem,1,ifelse(ytr1==1,Se[S],1-Sp[S]))
+        yrm1 <- stats::rbinom(Rem,1,ifelse(ytr1==1,Se[S],1-Sp[S]))
 	    Zmat <- rbind(Zmat,cbind(yrm1,1,Se[S],Sp[S],assayID[S],rid,matrix(-9,Rem,c.s[1]-1)))
       }
       if( Rem > 0) warning("N is not divisible by the initial pool size; a smaller remainder pool is used")
@@ -257,15 +304,13 @@ hier.gt.simulation <- function(N,p=0.10,S,psz,Se,Sp,assayID,Yt=NULL){
 #' This function simulates two-dimensional array-based group testing data.
 #'
 #' @param N The number of individuals to be tested.
-#' @param p A vector of length N consisting of individual disease probabilities.
+#' @param p A scalar or a vector of length N consisting of individual disease probabilities.
 #' @param protocol Either "A2" or "A2M", where "A2" ("A2M") refers to the two-dimensional array without (with) testing the members of an array as a single pooled sample.
 #' @param n The row (or column) size of the arrays.
 #' @param Se A vector of assay sensitivities.
 #' @param Sp A vector of assay specificities.
 #' @param assayID A vector of assay identification numbers.
 #' @param Yt A vector of individual true disease statuses.
-#'
-#' @importFrom stats rbinom
 #'
 #' @details
 #' We consider the array testing protocol outlined in Kim et al. (2007). Under this protocol, \eqn{N} individuals are assigned to \eqn{m} non-overlapping \eqn{n}-by-\eqn{n} matrices such that \eqn{N=mn^2}. From each matrix, \eqn{n} pools are formed using the row specimens and another \eqn{n} pools are formed using the column specimens. In stage 1, the \eqn{2n} pools are tested. In stage 2, individual testing is used for case identification according to the strategy described in Kim et al. (2007). This is a 2-stage protocol called \emph{Square Array without Master Pool Testing} and denoted by \eqn{A2(n:1)} in Kim et al. (2007). A variant (3-stage protocol) is also presented in Kim et al. (2007) which employs testing the \eqn{n^2} array members together as an initial pooled unit before implementing the 2-stage array. If the initial pooled test is negative, the procedure stops (i.e., the 2-stage array is not needed). However, if the pooled test is positive, the 2-stage protocol is used as before. This 3-stage approach is called \emph{Square Array with Master Pool Testing} and is denoted by \eqn{A2(n^2:n:1)}. See Kim et al. (2007) for more details.
@@ -299,6 +344,7 @@ hier.gt.simulation <- function(N,p=0.10,S,psz,Se,Sp,assayID,Yt=NULL){
 #' library(groupTesting)
 #'
 #' ## Example 1: Square Array without Master Pool Testing (i.e., 2-Stage Array)
+#' set.seed(123)
 #' N <- 48              # Sample size
 #' protocol <- "A2"     # 2-stage array
 #' n <- 4               # Row/column size
@@ -319,7 +365,7 @@ hier.gt.simulation <- function(N,p=0.10,S,psz,Se,Sp,assayID,Yt=NULL){
 #' x1 <- rnorm(N, mean=0, sd=.75)
 #' x2 <- rbinom(N, size=1, prob=0.5)
 #' X <- cbind(1, x1, x2)
-#' pReg <- exp(X%*%param)/(1+exp(X%*%param)) # Logit
+#' pReg <- stats::plogis(drop(X %*% param))
 #' array.gt.simulation(N=N,p=pReg,protocol=protocol,n=n,Se=Se,Sp=Sp,assayID=assayID)
 #'
 #' # The above examples with different assays
@@ -330,6 +376,7 @@ hier.gt.simulation <- function(N,p=0.10,S,psz,Se,Sp,assayID,Yt=NULL){
 #' array.gt.simulation(N,pReg,protocol,n,Se,Sp,assayID)
 #'
 #' ## Example 2: Square Array with Master Pool Testing (i.e., 3-Stage Array)
+#' set.seed(123)
 #' N <- 48
 #' protocol <- "A2M"
 #' n <- 4
@@ -362,15 +409,42 @@ array.gt.simulation <- function(N,p=0.10,protocol=c("A2","A2M"),n,Se,Sp,assayID,
     if( is.null(yt) ){
       Yt.ind <- stats::rbinom(Nr,1,prob)
     }
-    for(k in 1:Nr){
-      prb <- ifelse(Yt.ind>0, Se.ind, 1-Sp.ind)
-      y.test <- stats::rbinom(Nr,1,prb)
-    }
+    prb <- ifelse(Yt.ind==1, Se.ind, 1-Sp.ind)
+    y.test <- stats::rbinom(Nr,1,prb)
     return(y.test)
   }
   protocol <- match.arg(protocol)
-  if(n <= 1) stop("Row size and column size must be larger than 1")
-  if(n^2 > N) stop("The array size n*n is too large")
+  
+  ## Validating the arguments
+  if(!is.numeric(N) || length(N) != 1L || !is.finite(N) || N <= 0 || N%%1 != 0){
+    stop("N must be a positive integer.")
+  }
+  if(!is.numeric(n) || length(n) != 1L || !is.finite(n) || n <= 1 || n%%1 != 0){
+    stop("n must be an integer greater than 1.")
+  }
+  if(n^2 > N){
+    stop("The array size n^2 cannot exceed N.")
+  }
+  S <- if(protocol == "A2") 2 else 3
+  if(!is.numeric(Se) || length(Se) != S || any(!is.finite(Se)) || any(Se < 0) || any(Se > 1)){
+    stop("Se must have the required number of sensitivity values between 0 and 1.")
+  } 
+  if(!is.numeric(Sp) || length(Sp) != S || any(!is.finite(Sp)) || any(Sp < 0) || any(Sp > 1)){
+    stop("Sp must have the required number of specificity values between 0 and 1.")
+  }
+  if(!is.numeric(assayID) || length(assayID) != S || any(!is.finite(assayID)) || any(assayID %% 1 != 0)){
+    stop("assayID must have the required number of integer values.")
+  }
+  if(is.null(Yt)){
+    if(!is.numeric(p) || any(!is.finite(p)) || !(length(p) == 1L || length(p) == N) || any(p < 0) || any(p > 1)){
+    stop("p must be a scalar probability or a vector of N probabilities.")
+  }
+  }else{
+    if(!is.numeric(Yt) || length(Yt) != N || any(!is.finite(Yt)) || any(Yt != 0 & Yt != 1)){
+      stop("Yt must have N binary values (0 or 1).")
+    }
+  }
+
   L <- floor(N/n^2)
   N0 <- L*n^2
   if( !is.null(Yt) ){
@@ -392,9 +466,9 @@ array.gt.simulation <- function(N,p=0.10,protocol=c("A2","A2M"),n,Se,Sp,assayID,
       for(i in 1:n){
         for(j in 1:n){
           T1 <- 0
-          if(R1[i]==1 & C1[j]==1) T1 <- T1 + 1
-          if(R1[i]==1 & sum(C1)==0) T1 <- T1 + 1
-          if(sum(R1)==0 & C1[j]==1) T1 <- T1 + 1
+          if(R1[i]==1 && C1[j]==1) T1 <- T1 + 1
+          if(R1[i]==1 && sum(C1)==0) T1 <- T1 + 1
+          if(sum(R1)==0 && C1[j]==1) T1 <- T1 + 1
           if(T1>=1){
             y1 <- stats::rbinom(1,1,ifelse(Ymat1[i,j]==1,Se[2],1-Sp[2]))
             Ymat <- rbind(Ymat,c(y1,1,Se[2],Sp[2],assayID[2],Z_id[i,j]))
@@ -425,9 +499,9 @@ array.gt.simulation <- function(N,p=0.10,protocol=c("A2","A2M"),n,Se,Sp,assayID,
         for(i in 1:n){
           for(j in 1:n){
             T1 <- 0
-            if(R1[i]==1 & C1[j]==1) T1 <- T1 + 1
-            if(R1[i]==1 & sum(C1)==0) T1 <- T1 + 1
-            if(sum(R1)==0 & C1[j]==1) T1 <- T1 + 1
+            if(R1[i]==1 && C1[j]==1) T1 <- T1 + 1
+            if(R1[i]==1 && sum(C1)==0) T1 <- T1 + 1
+            if(sum(R1)==0 && C1[j]==1) T1 <- T1 + 1
             if(T1>=1){
               y1 <- stats::rbinom(1,1,ifelse(Ymat1[i,j]==1,Se[3],1-Sp[3]))
               Ymat <- rbind(Ymat,c(y1,1,Se[3],Sp[3],assayID[3],Z_id[i,j]))
@@ -445,7 +519,6 @@ array.gt.simulation <- function(N,p=0.10,protocol=c("A2","A2M"),n,Se,Sp,assayID,
   Rem <- N-N0
   if( Rem > 0) warning("N is not divisible by the array size; the remainder individuals are tested one by one")
   if( Rem > 0 ){
-    S <- length(Se)
     ytest <- ind.simulation(Nr=Rem,Se.ind=Se[S],Sp.ind=Sp[S],yt=Ytil1[(N0+1):N])
 	rmat <- matrix(-9,length(ytest),ncol(Zmat)-6)
     zfil <- cbind( ytest,1,Se[S],Sp[S],assayID[S],(N0+1):N,rmat )

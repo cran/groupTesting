@@ -11,19 +11,27 @@ glmLink(fn.name = c("logit", "probit", "cloglog"))
 }
 \value{
 A list with components:
-\item{g}{The link function corresponding to "logit", "probit", or "cloglog".}
+\item{g}{The inverse link function corresponding to "logit", "probit", or "cloglog".}
 \item{dg}{The first derivative of g.}
 \item{d2g}{The second derivative of g.}
-\item{gInv}{The inverse of g.}
+\item{gInv}{The original link function.}
+\item{dgInv}{The first derivative of gInv.}
 }
 \description{
-This function provides characteristics of common link functions (logit, probit, and comlementary log-log). Specifically, based on the link name, the function with its inverse, first derivative, and second derivative is provided.
+This function provides characteristics of common link functions (logit, probit, and complementary log-log). Specifically, based on the link name, the inverse link function, its first and second derivatives, the original link function, and the first derivative of the original link are returned.
 }
 \examples{
 
-library(groupTesting)
-
-## Try:
+## Logit link functions
+# Try: 
 glmLink("logit")
+
+link <- glmLink("logit")
+## Evaluate inverse link and its first derivative
+link$g(0)
+link$dg(0)
+
+## Evaluate the original link
+link$gInv(0.5)
 
 }

@@ -18,7 +18,7 @@ array.gt.simulation(
 \arguments{
 \item{N}{The number of individuals to be tested.}
 
-\item{p}{A vector of length N consisting of individual disease probabilities.}
+\item{p}{A scalar or a vector of length N consisting of individual disease probabilities.}
 
 \item{protocol}{Either "A2" or "A2M", where "A2" ("A2M") refers to the two-dimensional array without (with) testing the members of an array as a single pooled sample.}
 
@@ -60,6 +60,7 @@ When available, the individual true disease statuses (1 for positive and 0 for n
 library(groupTesting)
 
 ## Example 1: Square Array without Master Pool Testing (i.e., 2-Stage Array)
+set.seed(123)
 N <- 48              # Sample size
 protocol <- "A2"     # 2-stage array
 n <- 4               # Row/column size
@@ -80,7 +81,7 @@ param <- c(-3,2,1)
 x1 <- rnorm(N, mean=0, sd=.75)
 x2 <- rbinom(N, size=1, prob=0.5)
 X <- cbind(1, x1, x2)
-pReg <- exp(X\%*\%param)/(1+exp(X\%*\%param)) # Logit
+pReg <- stats::plogis(drop(X \%*\% param))
 array.gt.simulation(N=N,p=pReg,protocol=protocol,n=n,Se=Se,Sp=Sp,assayID=assayID)
 
 # The above examples with different assays
@@ -91,6 +92,7 @@ array.gt.simulation(N,pHom,protocol,n,Se,Sp,assayID)
 array.gt.simulation(N,pReg,protocol,n,Se,Sp,assayID)
 
 ## Example 2: Square Array with Master Pool Testing (i.e., 3-Stage Array)
+set.seed(123)
 N <- 48
 protocol <- "A2M"
 n <- 4

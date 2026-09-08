@@ -1,18 +1,16 @@
 #' Wald Chi-Square Test
 #'
-#' This function implements the Wald \emph{chi-square} test on a \eqn{K}x\eqn{1} parameter vector \strong{theta}. The test assumes that \strong{thetaHat}, a consistent estimator of \strong{theta} such as MLE, is asymptotically normal with mean \strong{theta} and covariance matrix \strong{Sigma}. The function can implement 1 test on \strong{theta} as well as multiple, \strong{Q}, tests jointly on \strong{theta}.
+#' This function implements the Wald \emph{chi-square} test on a \eqn{K}x\eqn{1} parameter vector \strong{theta}. The test assumes that \strong{thetaHat}, a consistent estimator of \strong{theta} such as MLE, is asymptotically normal with mean \strong{theta} and covariance matrix \strong{Sigma}. The function can implement a single linear hypothesis test or multiple linear hypothesis tests jointly on \strong{theta}.
 #'
 #' @param R A \eqn{Q}x\eqn{K} matrix of known coefficients depending on how the test is to be carried out.
 #' @param thetaHat An estimate of \strong{theta}.
 #' @param Sigma An estimated covariance matrix for \code{thetaHat}.
-#' @param r A \eqn{Q}x\eqn{1} matrix of hypothesized values.
+#' @param r A scalar or a \eqn{Q}x\eqn{1} matrix of hypothesized values.
 #' @param L A character string to be used as a name of the test. When NULL, "L" will be used.
-#' 
-#' @importFrom stats pchisq
 #' 
 #' @details
 #' 
-#' Suppose that Q tests are to be performed jointly on the K by 1 parameter vector \strong{theta}. Let R be a \eqn{Q}x\eqn{K} matrix of known coefficients such as 0, 1, and -1, and r be a \eqn{Q}x\eqn{1} matrix of hypothesized values. The hypotheses are \eqn{H0:} \eqn{R}\eqn{\theta} = \eqn{r} vs. \eqn{H1}: \eqn{R}\eqn{\theta} != \eqn{r}. The test statistic has a chi-square distribution with Q degrees of freedom (Buse, 1982; Agresti, 2002).
+#' Suppose that Q linear restrictions are to be performed jointly on the K by 1 parameter vector \strong{theta}. Let R be a \eqn{Q}x\eqn{K} matrix of known coefficients such as 0, 1, and -1, and r be a \eqn{Q}x\eqn{1} matrix of hypothesized values. The hypotheses are \eqn{H0:} \eqn{R}\eqn{\theta} = \eqn{r} vs. \eqn{H1}: \eqn{R}\eqn{\theta} != \eqn{r}. The test statistic has a chi-square distribution with Q degrees of freedom (Buse, 1982; Agresti, 2002).
 #' 
 #' @return A data.frame object of the Wald test results.
 #'
@@ -71,7 +69,7 @@ waldTest <- function(R,thetaHat,Sigma,r=0,L=NULL){
   # Wald test statistic, W:
   W <- t(Lhat)%*%solve(R%*%Sigma%*%t(R))%*%Lhat
   DF <- nrow(R)
-  p.value <- 1 - stats::pchisq(as.numeric(W),DF)
+  p.value <- stats::pchisq(as.numeric(W), DF, lower.tail=FALSE)
   res <- data.frame(round(W,2), round(DF), round(p.value,5))
   res <- noquote(res)
   colnames(res) <- c("ChiSq","DF","Pr > ChiSq")

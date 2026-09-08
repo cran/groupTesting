@@ -14,23 +14,22 @@
 #' @param tol Convergence tolerance for the EM algorithm.
 #' @param nrep Number of repetitions used in the proposed computation algorithm.
 #' @param seed A single seed value, an integer. 
-#' @param ncore Number of CPU cores to be used in computing, where ncore => 1.
+#' @param ncore Number of CPU cores to be used in computing, where ncore >= 1.
 #'
 #' @importFrom stats rbinom 
-#' @importFrom binGroup2 opChar1
-#' @importFrom binGroup2 ExpTests
 #' @importFrom parallel makeCluster
 #' @importFrom parallel clusterEvalQ
 #' @importFrom parallel clusterSetRNGStream
 #' @importFrom parallel parLapply
 #' @importFrom parallel stopCluster
+#' @importFrom utils capture.output
 #'
 #'
 #' @details
 #' The function \code{mle.prop.eff} computes three measures of efficiency: relative testing efficiency (RTE), relative estimation efficiency (REE), and relative cost efficiency (RCE). These measures can be calculated for six common group testing protocols: master pool testing (MPT), hierarchical testing with two, three, and four stages (H2, H3, and H4), and array testing without and with master pool testing (A2 and A2M). For more information on these protocols, refer to Kim et al. (2007). We use the term 'relative efficiency' because these measures compare group testing (numerator) with the usual one-at-a-time, i.e., individual testing (denominator).
 #' 
-#' In the paper, we defined 'RTE' and discussed how it can be calculated for both common and more complex group testing protocols. For the five multistage protocols (H2, H3, H4, A2, and A2M), our function provides RTE values based on the analytic expressions of Kim et al. (2007). These expressions have been coded by Hitt et al. (2023) in their R package 'binGroup2'. We developed R code to restructure the output obtained from binGroup2, so it is consistent with our proposed method. 
-#' 
+#' In the paper, we defined 'RTE' and discussed how it can be calculated for both common and more complex group testing protocols. For the five multistage protocols (H2, H3, H4, A2, and A2M), our function provides RTE values based on the analytic expressions of Kim et al. (2007). These expressions are implemented using functions from the R package 'binGroup'. We developed R code to restructure the output, so it is consistent with our proposed method.
+#'
 #' Based on the expressions in our article, we analytically calculate REE for MPT and H2 and also compute RCE for MPT. For other scenarios, we determine REE and RCE based on our proposed computation algorithm.
 #' 
 #' The expected costs, \eqn{E[T]}, \eqn{E[(\hat{p} - p)^2]}, and \eqn{E[T(\hat{p} - p)^2]}, are calculated for a given \eqn{N}, the number of individuals to be tested. The 'MPT' and 'H2' protocols require that \eqn{N} is completely divisible by the initial pool size \eqn{k}. If this is not the case, the integer that is closest to \eqn{N} and divisible by \eqn{k} will be used. It is worth noting that \eqn{N} is also used in the computation algorithm, where a large-sample assumption is made. We found that \eqn{N = 800} may be sufficient in most scenarios for the validity of this assumption, although we used \eqn{N = 1200} in the article; for more information, refer to Warasi and Das (2024).
@@ -58,7 +57,7 @@
 #' \itemize{
 #' \item Kim HY, Hudgens M, Dreyfuss J, Westreich D, and Pilcher C. (2007). Comparison of Group Testing Algorithms for Case Identification in the Presence of Testing Error. \emph{Biometrics}, 63:1152-1163.
 #' \item Zhang W, Liu A, Li Q, Albert P. (2020). Incorporating Retesting Outcomes for Estimation of Disease Prevalence. \emph{Statistics in Medicine}, 39:687-697.
-#' \item Warasi and Das (2024). Optimizing Disease Surveillance Through Pooled Testing with Application to Infectious Diseases. \emph{Journal of Agricultural, Biological and Environmental Statistics}. In press.
+#' \item Warasi M. S. and Das K. P. (2024). Optimizing Disease Surveillance Through Pooled Testing with Application to Infectious Diseases. \emph{Journal of Agricultural, Biological and Environmental Statistics}, 31:145--161. \doi{10.1007/s13253-024-00646-6}.
 #' }
 #' 
 #' @examples
@@ -131,8 +130,6 @@
 #' ## RCE (using the computation algorithm)
 #' # res <- mle.prop.eff(p=p0, Se=Se, Sp=Sp, initial.psz=psz, protocol="H3", seed=123, 
 #' #   criterion="RCE", N=800, ngit=3000, maxit=200, tol=0.001, nrep=3000, ncore=4)
-#' 
-#' 
 #' 
 mle.prop.eff <- function(p, Se, Sp, initial.psz, protocol=c("MPT","H2","H3","H4","A2","A2M"), criterion=c("RTE", "REE", "RCE"), N=800, ngit=3000, maxit=200, tol=1e-03, nrep=3000, seed=NULL, ncore=1){
   M.psz <- sort(unique(initial.psz))

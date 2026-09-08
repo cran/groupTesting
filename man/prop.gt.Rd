@@ -17,15 +17,15 @@ prop.gt(
 )
 }
 \arguments{
-\item{p0}{An initial value of the prevalence.}
+\item{p0}{Initial value of the prevalence \eqn{p}, between 0 and 1.}
 
-\item{gtData}{A matrix or data.frame consisting of the pooled test outcomes and other information from a group testing application. Needs to be specified as shown in the example below.}
+\item{gtData}{A matrix or data.frame consisting of the pooled test outcomes and other information from a group testing application. Must be structured according to the description and example provided in \code{\link{gtData}}.}
 
-\item{covariance}{When TRUE, the variance is calculated at the MLE.}
+\item{covariance}{Logical. If TRUE, the variance is calculated at the MLE.}
 
 \item{nburn}{The number of initial Gibbs iterates to be discarded.}
 
-\item{ngit}{The number of Gibbs iterates to be used in the E-step after discarding the initial iterates as a burn-in period.}
+\item{ngit}{The number of Gibbs iterates to be used in the E-step after discarding the initial \code{nburn} iterates as burn-in.}
 
 \item{maxit}{The maximum number of EM steps (iterations) allowed in the EM algorithm.}
 
@@ -33,39 +33,29 @@ prop.gt(
 
 \item{tracing}{When TRUE, progress in the EM algorithm is displayed.}
 
-\item{conf.level}{Confidence level to be used for the Wald confidence interval.}
+\item{conf.level}{Confidence level for the Wald confidence interval.}
 }
 \value{
 A list with components:
 \item{param}{The MLE of the disease prevalence.}
 \item{covariance}{Estimated variance for the disease prevalence.}
-\item{iterUsed}{The number of EM iterations used for convergence.}
+\item{iterUsed}{The number of EM iterations performed.}
 \item{convergence}{0 if the EM algorithm converges successfully and 1 if the iteration limit \code{maxit} has been reached.}
 \item{summary}{Estimation summary with Wald confidence interval.}
 }
 \description{
-This function implements an expectation-maximization (EM) algorithm to find the maximum likelihood estimate (MLE) of a disease prevalence, p, based on group testing data. The EM algorithm, which is outlined in Warasi (2023), can model pooling data observed from \strong{any} group testing protocol used in practice, including hierarchical and array testing (Kim et al., 2007).
+This function implements an expectation-maximization (EM) algorithm to find the maximum likelihood estimate (MLE) of a disease prevalence, p, based on group testing data. The EM algorithm, which is outlined in Warasi (2023), can model pooled testing data arising from a wide range of group testing protocols used in practice, including hierarchical and array testing (Kim et al., 2007).
 }
 \details{
-\code{gtData} must be specified as follows. Columns 1-5 consist of the pooled test outcomes (0 for negative and 1 for positive), pool sizes, pool-specific sensitivities, pool-specific specificities, and assay ID numbers, respectively. From column 6 onward, the pool member ID numbers need to be specified. Note that the ID numbers must start with 1 and increase consecutively up to \code{N}, the total number of individuals tested. \strong{For smaller pools, incomplete ID numbers must be filled out by -9 or any non-positive numbers} as shown in the example below.\tabular{cccccccccccc}{
-    \tab Z \tab psz \tab Se \tab Sp \tab Assay \tab Mem1 \tab Mem2 \tab Mem3 \tab Mem4 \tab Mem5 \tab Mem6 \cr
-   Pool:1 \tab 1 \tab 6 \tab 0.90 \tab 0.92 \tab 1 \tab 1 \tab 2 \tab 3 \tab 4 \tab 5 \tab 6 \cr
-   Pool:2 \tab 0 \tab 6 \tab 0.90 \tab 0.92 \tab 1 \tab 7 \tab 8 \tab 9 \tab 10 \tab 11 \tab 12 \cr
-   Pool:3 \tab 1 \tab 2 \tab 0.95 \tab 0.96 \tab 2 \tab 1 \tab 2 \tab -9 \tab -9 \tab -9 \tab -9 \cr
-   Pool:4 \tab 0 \tab 2 \tab 0.95 \tab 0.96 \tab 2 \tab 3 \tab 4 \tab -9 \tab -9 \tab -9 \tab -9 \cr
-   Pool:5 \tab 1 \tab 2 \tab 0.95 \tab 0.96 \tab 2 \tab 5 \tab 6 \tab -9 \tab -9 \tab -9 \tab -9 \cr
-   Pool:6 \tab 0 \tab 1 \tab 0.92 \tab 0.90 \tab 3 \tab 1 \tab -9 \tab -9 \tab -9 \tab -9 \tab -9 \cr
-   Pool:7 \tab 1 \tab 1 \tab 0.92 \tab 0.90 \tab 3 \tab 2 \tab -9 \tab -9 \tab -9 \tab -9 \tab -9 \cr
-   Pool:8 \tab 0 \tab 1 \tab 0.92 \tab 0.90 \tab 3 \tab 5 \tab -9 \tab -9 \tab -9 \tab -9 \tab -9 \cr
-   Pool:9 \tab 0 \tab 1 \tab 0.92 \tab 0.90 \tab 3 \tab 6 \tab -9 \tab -9 \tab -9 \tab -9 \tab -9 \cr
-}
+The EM algorithm consists of an E-step and an M-step that are
+performed alternately. In the E-step, the expectation of the
+complete-data log-likelihood is approximated, whereas in the
+M-step, this quantity is maximized with respect to the prevalence
+\eqn{p} using a closed-form expression. The EM iterations continue
+until convergence of the prevalence estimates is
+achieved; see Warasi (2023) for further details.
 
-
-This is an example of \code{gtData}, where 12 individuals are assigned to 2 non-overlapping initial pools and then tested based on the 3-stage hierarchical protocol. The test outcomes, \code{Z}, from 9 pools are in column 1. In three stages, different pool sizes (6, 2, and 1), sensitivities, specificities, and assays are used. The ID numbers of the pool members are shown in columns 6-11. The row names and column names are not required. Note that the EM algorithm can accommodate any group testing data including those described in Kim et al. (2007). For individual testing data, the pool size in column 2 is 1 for all pools.
-
-The EM algorithm implements a Gibbs sampler to approximate quantities required to complete the E-step. Under each EM iteration, \code{ngit} Gibbs samples are retained for these purposes after discarding the initial \code{nburn} samples.
-
-The variance of the MLE is calculated by an appeal to the missing data principle and the method outlined in Louis (1982).
+The variance of the MLE is calculated using the missing data principle and the method outlined in Louis (1982).
 }
 \examples{
 
@@ -92,15 +82,14 @@ p.t <- 0.05           # The TRUE parameter to be estimated
 set.seed(123)
 gtOut <- hier.gt.simulation(N,p.t,S,psz,Se,Sp,assayID)$gtData
 
-# Running the EM algorithm:
+# EM algorithm:
 pStart <- p.t + 0.2   # Initial value
 res <- prop.gt(p0=pStart,gtData=gtOut,covariance=TRUE,
                nburn=2000,ngit=5000,maxit=200,tol=1e-03,
                tracing=TRUE,conf.level=0.95)
 
 # Estimation results:
-# > res
-
+# >  res
 # $param
 # [1] 0.05158
 
@@ -115,8 +104,8 @@ res <- prop.gt(p0=pStart,gtData=gtOut,covariance=TRUE,
 # [1] 0
 
 # $summary
-#      Estimate StdErr 95\%lower 95\%upper
-# prop    0.052  0.025    0.002    0.101
+#      Estimate Std.Err 95\%lower 95\%upper
+# prop    0.052   0.025    0.002    0.101
 
 ## Example 2: MLE from two-dimensional array testing data.
 ## The data used is simulated by 'array.gt.simulation'.
@@ -133,7 +122,7 @@ p.true <- 0.05       # The TRUE parameter to be estimated
 set.seed(123)
 gtOut <- array.gt.simulation(N,p.true,protocol,n,Se,Sp,assayID)$gtData
 
-# Fitting the model:
+# Fit the model:
 pStart <- p.true + 0.2  # Initial value
 res <- prop.gt(p0=pStart,gtData=gtOut,covariance=TRUE)
 print(res)
@@ -145,18 +134,18 @@ print(res)
 ## Note: With initial pooled responses, our MLE is equivalent  
 ## to the MLE in Litvak et al. (1994) and Liu et al. (2012).
 
-N <- 1000             # Sample size
-psz <- 5              # Pool size
-S <- 1                # 1-stage testing
-Se <- 0.95            # Sensitivity
-Sp <- 0.99            # Specificity
-assayID <- 1          # Assay used for all pools
-p.true <- 0.05        # True parameter
+N <- 1000           
+psz <- 5             
+S <- 1             
+Se <- 0.95           
+Sp <- 0.99           
+assayID <- 1       
+p.true <- 0.05      
 
 set.seed(123)
 gtOut <- hier.gt.simulation(N,p.true,S,psz,Se,Sp,assayID)$gtData
 
-pStart <- p.true + 0.2   # Initial value
+pStart <- p.true + 0.2  
 res <- prop.gt(p0=pStart,gtData=gtOut,
                covariance=TRUE,nburn=2000,ngit=5000,
                maxit=200,tol=1e-03,tracing=TRUE)
@@ -165,18 +154,18 @@ print(res)
 ## Example 4: MLE from individual (one-by-one) testing data.
 ## The data used is simulated by 'hier.gt.simulation'.
 
-N <- 1000             # Sample size
-psz <- 1              # Pool size 1 (i.e., individual testing)
-S <- 1                # 1-stage testing
-Se <- 0.95            # Sensitivity
-Sp <- 0.99            # Specificity
-assayID <- 1          # Assay used for all pools
-p.true <- 0.05        # True parameter
+N <- 1000            
+psz <- 1             
+S <- 1               
+Se <- 0.95         
+Sp <- 0.99          
+assayID <- 1         
+p.true <- 0.05      
 
 set.seed(123)
 gtOut <- hier.gt.simulation(N,p.true,S,psz,Se,Sp,assayID)$gtData
 
-pStart <- p.true + 0.2   # Initial value
+pStart <- p.true + 0.2   
 res <- prop.gt(p0=pStart,gtData=gtOut,
                covariance=TRUE,nburn=2000,
                ngit=5000,maxit=200,
@@ -235,5 +224,5 @@ Louis T. (1982). Finding the Observed Information Matrix when Using the EM algor
 Warasi M. (2023). groupTesting: An R Package for Group Testing Estimation. \emph{Communications in Statistics-Simulation and Computation}, 52:6210-6224.
 }
 \seealso{
-\code{\link{hier.gt.simulation}} and \code{\link{array.gt.simulation}} for group testing data simulation, and \code{\link{glm.gt}} for group testing regression models.
+\code{\link{hier.gt.simulation}} and \code{\link{array.gt.simulation}} for group testing data simulation, \code{\link{glm.gt}} for group testing regression models, and \code{\link{gtData}} for information about the required data structure.
 }

@@ -23,21 +23,21 @@ glm.gt(
 )
 }
 \arguments{
-\item{beta0}{An initial value for the regression coefficients.}
+\item{beta0}{An initial value for the regression coefficients. Its length must equal the number of columns of \code{X}.}
 
-\item{gtData}{A matrix or data.frame consisting of the pooled test outcomes and other information from a group testing application. Needs to be specified as shown in the example below.}
+\item{gtData}{A matrix or data.frame consisting of the pooled test outcomes and other information from a group testing application. Must be structured according to the description and example provided in \code{\link{gtData}}.}
 
-\item{X}{The design matrix.}
+\item{X}{An \eqn{N \times r} design matrix. For an intercept model, the first column should consist of 1's; otherwise, a model without intercept is fit.}
 
 \item{g}{An inverse link function in the GLM family.}
 
-\item{dg}{The first derivate of \code{g}. When NULL, a finite-difference approximation will be used.}
+\item{dg}{The first derivative of \code{g}. Used only when \code{covariance=TRUE}. When NULL, a finite-difference approximation will be used.}
 
-\item{d2g}{The second derivate of \code{g}. When NULL, a finite-difference approximation will be used.}
+\item{d2g}{The second derivative of \code{g}. Used only when \code{covariance=TRUE}. When NULL, a finite-difference approximation will be used.}
 
-\item{grdMethod}{The finite-difference approximation method to be used for \code{dg} and \code{d2g}. See 'Details'.}
+\item{grdMethod}{The finite-difference approximation method used when \code{covariance=TRUE} and when \code{dg} or \code{d2g} is NULL.}
 
-\item{covariance}{When TRUE, the covariance matrix is calculated at the MLE.}
+\item{covariance}{Logical. If TRUE, the covariance matrix is calculated at the MLE.}
 
 \item{nburn}{The number of initial Gibbs iterates to be discarded.}
 
@@ -49,7 +49,7 @@ glm.gt(
 
 \item{tracing}{When TRUE, progress in the EM algorithm is displayed.}
 
-\item{conf.level}{Confidence level to be used for the Wald confidence interval.}
+\item{conf.level}{Confidence level for the Wald confidence intervals.}
 
 \item{...}{Further arguments to be passed to \code{\link{optim}}. See 'Details'.}
 }
@@ -57,41 +57,33 @@ glm.gt(
 A list with components:
 \item{param}{The MLE of the regression coefficients.}
 \item{covariance}{Estimated covariance matrix for the regression coefficients.}
-\item{iterUsed}{The number of EM iterations needed for convergence.}
+\item{iterUsed}{The number of EM iterations performed.}
 \item{convergence}{0 if the EM algorithm converges successfully and 1 if the iteration limit \code{maxit} has been reached.}
-\item{summary}{Estimation summary with Wald confidence interval.}
+\item{summary}{Estimation summary with Wald confidence intervals.}
 }
 \description{
-This function implements an expectation-maximization (EM) algorithm to fit regression models to group testing data, where pooled responses are related to individual covariates through a link function in the generalized linear model (GLM) family. The EM algorithm, which is outlined in Warasi (2023), finds the maximum likelihood estimate (MLE) for the vector of regression coefficients, \strong{beta}. The EM algorithm can model pooling data observed from \strong{any} group testing protocol used in practice, including hierarchical and array testing (Kim et al., 2007).
+This function implements an expectation-maximization (EM) algorithm to fit regression models to group testing data, where individual true disease statuses are treated as latent variables (i.e., missing data) and their disease probabilities are related to the covariates through a link function in the generalized linear model (GLM) family. The EM algorithm, which is outlined in Warasi (2023), finds the maximum likelihood estimate (MLE) for the vector of regression coefficients, \strong{beta}. The EM algorithm can model pooled testing data arising from a wide range of group testing protocols used in practice, including hierarchical and array testing (Kim et al., 2007).
 }
 \details{
-\code{gtData} must be specified as follows. Columns 1-5 consist of the pooled test outcomes (0 for negative and 1 for positive), pool sizes, pool-specific sensitivities, pool-specific specificities, and assay identification (ID) numbers, respectively. From column 6 onward, the pool member ID numbers need to be specified. Note that the ID numbers must start with 1 and increase consecutively up to \code{N}, the total number of individuals tested. \strong{For smaller pools, incomplete ID numbers must be filled out by -9 or any non-positive numbers} as shown in the example below. The design matrix \code{X} consists of invidual covariate information, such as age, sex, and symptoms, of the pool members located in column 6 onward.\tabular{cccccccccccc}{
-    \tab Z \tab psz \tab Se \tab Sp \tab Assay \tab Mem1 \tab Mem2 \tab Mem3 \tab Mem4 \tab Mem5 \tab Mem6 \cr
-   Pool:1 \tab 1 \tab 6 \tab 0.90 \tab 0.92 \tab 1 \tab 1 \tab 2 \tab 3 \tab 4 \tab 5 \tab 6 \cr
-   Pool:2 \tab 0 \tab 6 \tab 0.90 \tab 0.92 \tab 1 \tab 7 \tab 8 \tab 9 \tab 10 \tab 11 \tab 12 \cr
-   Pool:3 \tab 1 \tab 2 \tab 0.95 \tab 0.96 \tab 2 \tab 1 \tab 2 \tab -9 \tab -9 \tab -9 \tab -9 \cr
-   Pool:4 \tab 0 \tab 2 \tab 0.95 \tab 0.96 \tab 2 \tab 3 \tab 4 \tab -9 \tab -9 \tab -9 \tab -9 \cr
-   Pool:5 \tab 1 \tab 2 \tab 0.95 \tab 0.96 \tab 2 \tab 5 \tab 6 \tab -9 \tab -9 \tab -9 \tab -9 \cr
-   Pool:6 \tab 0 \tab 1 \tab 0.92 \tab 0.90 \tab 3 \tab 1 \tab -9 \tab -9 \tab -9 \tab -9 \tab -9 \cr
-   Pool:7 \tab 1 \tab 1 \tab 0.92 \tab 0.90 \tab 3 \tab 2 \tab -9 \tab -9 \tab -9 \tab -9 \tab -9 \cr
-   Pool:8 \tab 0 \tab 1 \tab 0.92 \tab 0.90 \tab 3 \tab 5 \tab -9 \tab -9 \tab -9 \tab -9 \tab -9 \cr
-   Pool:9 \tab 0 \tab 1 \tab 0.92 \tab 0.90 \tab 3 \tab 6 \tab -9 \tab -9 \tab -9 \tab -9 \tab -9 \cr
-}
+The EM algorithm consists of an E-step and an M-step that are
+performed alternately. In the E-step, the expectation of the
+complete-data log-likelihood is approximated, whereas in the
+M-step, this quantity is maximized with respect to the regression
+coefficient vector using \code{\link{optim}}. The EM iterations continue
+until convergence of the regression coefficient estimates is
+achieved; see Warasi (2023) for further details.
 
+\code{X} is an \eqn{N \times r} design matrix, where each column represents a vector of individual covariate values. For an intercept model, the entries in the first column must be 1. The column (covariate) names of X, such as 'age' and 'sex', will be displayed in the estimation summary. When column names are missing (NULL), the names that will be displayed by default are 'Intercept', 'x1', 'x2', and so on.
 
-This is an example of \code{gtData}, where 12 individuals are assigned to 2 non-overlapping initial pools and then tested based on the 3-stage hierarchical protocol. The test outcomes, \code{Z}, from 9 pools are in column 1. In three stages, different pool sizes (6, 2, and 1), sensitivities, specificities, and assays are used. The ID numbers of the pool members are shown in columns 6-11. The row names and column names are not required. Note that the EM algorithm can accommodate any group testing data including those described in Kim et al. (2007). For individual testing data, the pool size in column 2 is 1 for all pools.
+The EM algorithm implements a Gibbs sampler to approximate the expectation in the E-step. Under each EM iteration, \code{ngit} Gibbs samples are retained to approximate the expectation after discarding the initial \code{nburn} samples as burn-in.
 
-\code{X} is an \eqn{N}x\eqn{k} design matrix, where each column represents a vector of individual covariate values. For an intercept model, the first column values must be 1. The column (covariate) names of X, such as 'age' and 'sex', will be displayed in the estimation summary. When column names are missing (NULL), the names that will be displayed by default are 'Intercept', 'x1', 'x2', and so on.
+The inverse link function \code{g} relates the individual disease probabilities to the covariates in \code{X}. \code{dg} and \code{d2g} can be specified analogously. These characteristics can be obtained from \code{\link{glmLink}} for the common links: logit, probit, and complementary log-log.
 
-The EM algorithm implements a Gibbs sampler to approximate the expectation in the E-step. Under each EM iteration, \code{ngit} Gibbs samples are retained for these purposes after discarding the initial \code{nburn} samples.
-
-\code{g} relates the pooled responses Z (column 1 in \code{gtData}) to \code{X}. \code{dg} and \code{d2g} can be specified analogously. These characteristics can be obtained from \code{\link{glmLink}} for the common links: logit, probit, and complementary log-log.
-
-\code{grdMethod} is used only when dg and d2g are NULL, where a finite-difference approximation is implemented by the function \code{fderiv} from the package 'pracma'.
+When \code{covariance=TRUE}, \code{grdMethod} is used only when \code{dg} or \code{d2g} is NULL, in which case a finite-difference approximation is implemented using the function \code{fderiv} from the package 'pracma'.
 
 The optimization routine \code{\link{optim}} is used to complete the M-step with the default method 'Nelder-Mead'. The argument ... allows the user to change the default method as well as other arguments in \code{\link{optim}}.
 
-The covariance matrix is calculated by an appeal to the missing data principle and the method outlined in Louis (1982).
+The covariance matrix is calculated using the missing data principle and the method outlined in Louis (1982).
 }
 \examples{
 
@@ -187,8 +179,8 @@ X <- cbind(x1, x2, x3)
 # Finding g, dg, and d2g from the function 'glmLink':  
 res0 <- glmLink(fn.name="logit")  
 g <- res0$g            # Logit inverse link g()
-dg <- res0$dg          # The exact first derivate of g
-d2g <- res0$d2g        # The exact second derivate of g
+dg <- res0$dg          # The exact first derivative of g
+d2g <- res0$d2g        # The exact second derivative of g
 pReg <- g(X\%*\%param)   # Individual probabilities
 gtOut <- array.gt.simulation(N,pReg,protocol,n,Se,Sp,assayID)$gtData
 
@@ -323,5 +315,5 @@ Vansteelandt S, Goetghebeur E, and Verstraeten T. (2000). Regression Models for 
 Warasi M. (2023). groupTesting: An R Package for Group Testing Estimation. \emph{Communications in Statistics-Simulation and Computation}, 52:6210-6224.
 }
 \seealso{
-\code{\link{hier.gt.simulation}} and \code{\link{array.gt.simulation}} for group testing data simulation, and \code{\link{prop.gt}} for estimation of a disease prevalence from group testing data.
+\code{\link{hier.gt.simulation}} and \code{\link{array.gt.simulation}} for group testing data simulation, \code{\link{prop.gt}} for estimation of a disease prevalence from group testing data, and \code{\link{gtData}} for information about the required data structure.
 }

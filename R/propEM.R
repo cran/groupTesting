@@ -1,48 +1,35 @@
 #' EM Algorithm to Estimate the Prevalence of a Disease from Group Testing Data
 #'
-#' This function implements an expectation-maximization (EM) algorithm to find the maximum likelihood estimate (MLE) of a disease prevalence, p, based on group testing data. The EM algorithm, which is outlined in Warasi (2023), can model pooling data observed from \strong{any} group testing protocol used in practice, including hierarchical and array testing (Kim et al., 2007).
+#' This function implements an expectation-maximization (EM) algorithm to find the maximum likelihood estimate (MLE) of a disease prevalence, p, based on group testing data. The EM algorithm, which is outlined in Warasi (2023), can model pooled testing data arising from a wide range of group testing protocols used in practice, including hierarchical and array testing (Kim et al., 2007).
 #'
 #' @useDynLib groupTesting, .registration=TRUE
 #' 
-#' @param p0 An initial value of the prevalence.
-#' @param gtData A matrix or data.frame consisting of the pooled test outcomes and other information from a group testing application. Needs to be specified as shown in the example below.
-#' @param covariance When TRUE, the variance is calculated at the MLE.
+#' @param p0 Initial value of the prevalence \eqn{p}, between 0 and 1.
+#' @param gtData A matrix or data.frame consisting of the pooled test outcomes and other information from a group testing application. Must be structured according to the description and example provided in \code{\link{gtData}}.
+#' @param covariance Logical. If TRUE, the variance is calculated at the MLE.
 #' @param nburn The number of initial Gibbs iterates to be discarded.
-#' @param ngit The number of Gibbs iterates to be used in the E-step after discarding the initial iterates as a burn-in period.
+#' @param ngit The number of Gibbs iterates to be used in the E-step after discarding the initial \code{nburn} iterates as burn-in.
 #' @param maxit The maximum number of EM steps (iterations) allowed in the EM algorithm.
 #' @param tol Convergence tolerance used in the EM algorithm.
 #' @param tracing When TRUE, progress in the EM algorithm is displayed.
-#' @param conf.level Confidence level to be used for the Wald confidence interval.
-#'
-#' @importFrom stats rbinom
-#' @importFrom stats runif
+#' @param conf.level Confidence level for the Wald confidence interval.
 #'
 #' @details
 #'
-#' \code{gtData} must be specified as follows. Columns 1-5 consist of the pooled test outcomes (0 for negative and 1 for positive), pool sizes, pool-specific sensitivities, pool-specific specificities, and assay ID numbers, respectively. From column 6 onward, the pool member ID numbers need to be specified. Note that the ID numbers must start with 1 and increase consecutively up to \code{N}, the total number of individuals tested. \strong{For smaller pools, incomplete ID numbers must be filled out by -9 or any non-positive numbers} as shown in the example below. 
+#' The EM algorithm consists of an E-step and an M-step that are 
+#' performed alternately. In the E-step, the expectation of the
+#' complete-data log-likelihood is approximated, whereas in the
+#' M-step, this quantity is maximized with respect to the prevalence 
+#' \eqn{p} using a closed-form expression. The EM iterations continue
+#' until convergence of the prevalence estimates is
+#' achieved; see Warasi (2023) for further details.
 #' 
-#' |     |  Z  |  psz  |   Se   |   Sp   |  Assay  |  Mem1  |  Mem2  |  Mem3  |  Mem4  |  Mem5  |  Mem6  |
-#' |:---:|:---:|:-----:|:------:|:------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|       
-#' | Pool:1   |  1  |   6   |  0.90  |  0.92  |    1    |    1    |    2    |    3    |    4    |    5    |    6    |
-#' | Pool:2   |  0  |   6   |  0.90  |  0.92  |    1    |    7    |    8    |    9    |   10    |    11   |   12    |
-#' | Pool:3   |  1  |   2   |  0.95  |  0.96  |    2    |    1    |    2    |   -9    |   -9    |    -9   |   -9    |
-#' | Pool:4   |  0  |   2   |  0.95  |  0.96  |    2    |    3    |    4    |   -9    |   -9    |    -9   |   -9    |
-#' | Pool:5   |  1  |   2   |  0.95  |  0.96  |    2    |    5    |    6    |   -9    |   -9    |    -9   |   -9    |
-#' | Pool:6   |  0  |   1   |  0.92  |  0.90  |    3    |    1    |   -9    |   -9    |   -9    |    -9   |   -9    |
-#' | Pool:7   |  1  |   1   |  0.92  |  0.90  |    3    |    2    |   -9    |   -9    |   -9    |    -9   |   -9    |
-#' | Pool:8   |  0  |   1   |  0.92  |  0.90  |    3    |    5    |   -9    |   -9    |   -9    |    -9   |   -9    |
-#' | Pool:9   |  0  |   1   |  0.92  |  0.90  |    3    |    6    |   -9    |   -9    |   -9    |    -9   |   -9    |
-#' 
-#' This is an example of \code{gtData}, where 12 individuals are assigned to 2 non-overlapping initial pools and then tested based on the 3-stage hierarchical protocol. The test outcomes, \code{Z}, from 9 pools are in column 1. In three stages, different pool sizes (6, 2, and 1), sensitivities, specificities, and assays are used. The ID numbers of the pool members are shown in columns 6-11. The row names and column names are not required. Note that the EM algorithm can accommodate any group testing data including those described in Kim et al. (2007). For individual testing data, the pool size in column 2 is 1 for all pools.
-#'
-#' The EM algorithm implements a Gibbs sampler to approximate quantities required to complete the E-step. Under each EM iteration, \code{ngit} Gibbs samples are retained for these purposes after discarding the initial \code{nburn} samples.  
-#' 
-#' The variance of the MLE is calculated by an appeal to the missing data principle and the method outlined in Louis (1982).
+#' The variance of the MLE is calculated using the missing data principle and the method outlined in Louis (1982).
 #' 
 #' @return A list with components:
 #' \item{param}{The MLE of the disease prevalence.}
 #' \item{covariance}{Estimated variance for the disease prevalence.}
-#' \item{iterUsed}{The number of EM iterations used for convergence.}
+#' \item{iterUsed}{The number of EM iterations performed.}
 #' \item{convergence}{0 if the EM algorithm converges successfully and 1 if the iteration limit \code{maxit} has been reached.}
 #' \item{summary}{Estimation summary with Wald confidence interval.}
 #' 
@@ -60,7 +47,7 @@
 #' Warasi M. (2023). groupTesting: An R Package for Group Testing Estimation. \emph{Communications in Statistics-Simulation and Computation}, 52:6210-6224.
 #' 
 #' @seealso
-#' \code{\link{hier.gt.simulation}} and \code{\link{array.gt.simulation}} for group testing data simulation, and \code{\link{glm.gt}} for group testing regression models.
+#' \code{\link{hier.gt.simulation}} and \code{\link{array.gt.simulation}} for group testing data simulation, \code{\link{glm.gt}} for group testing regression models, and \code{\link{gtData}} for information about the required data structure.
 #'
 #' @examples
 #' 
@@ -87,15 +74,14 @@
 #' set.seed(123)
 #' gtOut <- hier.gt.simulation(N,p.t,S,psz,Se,Sp,assayID)$gtData
 #'
-#' # Running the EM algorithm:
+#' # EM algorithm:
 #' pStart <- p.t + 0.2   # Initial value
 #' res <- prop.gt(p0=pStart,gtData=gtOut,covariance=TRUE,
 #'                nburn=2000,ngit=5000,maxit=200,tol=1e-03,
 #'                tracing=TRUE,conf.level=0.95)
 #' 
 #' # Estimation results:
-#' # > res
-#' 
+#' # >  res
 #' # $param
 #' # [1] 0.05158
 #' 
@@ -110,8 +96,8 @@
 #' # [1] 0
 #' 
 #' # $summary
-#' #      Estimate StdErr 95%lower 95%upper
-#' # prop    0.052  0.025    0.002    0.101
+#' #      Estimate Std.Err 95%lower 95%upper
+#' # prop    0.052   0.025    0.002    0.101
 #' 
 #' ## Example 2: MLE from two-dimensional array testing data.
 #' ## The data used is simulated by 'array.gt.simulation'.
@@ -128,7 +114,7 @@
 #' set.seed(123)
 #' gtOut <- array.gt.simulation(N,p.true,protocol,n,Se,Sp,assayID)$gtData
 #' 
-#' # Fitting the model:
+#' # Fit the model:
 #' pStart <- p.true + 0.2  # Initial value
 #' res <- prop.gt(p0=pStart,gtData=gtOut,covariance=TRUE)
 #' print(res)
@@ -140,18 +126,18 @@
 #' ## Note: With initial pooled responses, our MLE is equivalent  
 #' ## to the MLE in Litvak et al. (1994) and Liu et al. (2012).
 #' 
-#' N <- 1000             # Sample size
-#' psz <- 5              # Pool size
-#' S <- 1                # 1-stage testing
-#' Se <- 0.95            # Sensitivity
-#' Sp <- 0.99            # Specificity
-#' assayID <- 1          # Assay used for all pools
-#' p.true <- 0.05        # True parameter
+#' N <- 1000           
+#' psz <- 5             
+#' S <- 1             
+#' Se <- 0.95           
+#' Sp <- 0.99           
+#' assayID <- 1       
+#' p.true <- 0.05      
 #' 
 #' set.seed(123)
 #' gtOut <- hier.gt.simulation(N,p.true,S,psz,Se,Sp,assayID)$gtData
 #' 
-#' pStart <- p.true + 0.2   # Initial value
+#' pStart <- p.true + 0.2  
 #' res <- prop.gt(p0=pStart,gtData=gtOut,
 #'                covariance=TRUE,nburn=2000,ngit=5000,
 #'                maxit=200,tol=1e-03,tracing=TRUE)
@@ -160,18 +146,18 @@
 #' ## Example 4: MLE from individual (one-by-one) testing data.
 #' ## The data used is simulated by 'hier.gt.simulation'.
 #' 
-#' N <- 1000             # Sample size
-#' psz <- 1              # Pool size 1 (i.e., individual testing)
-#' S <- 1                # 1-stage testing
-#' Se <- 0.95            # Sensitivity
-#' Sp <- 0.99            # Specificity
-#' assayID <- 1          # Assay used for all pools
-#' p.true <- 0.05        # True parameter
+#' N <- 1000            
+#' psz <- 1             
+#' S <- 1               
+#' Se <- 0.95         
+#' Sp <- 0.99          
+#' assayID <- 1         
+#' p.true <- 0.05      
 #' 
 #' set.seed(123)
 #' gtOut <- hier.gt.simulation(N,p.true,S,psz,Se,Sp,assayID)$gtData
 #'
-#' pStart <- p.true + 0.2   # Initial value
+#' pStart <- p.true + 0.2   
 #' res <- prop.gt(p0=pStart,gtData=gtOut,
 #'                covariance=TRUE,nburn=2000,
 #'                ngit=5000,maxit=200,
@@ -219,21 +205,81 @@
 #'
 prop.gt <- function(p0,gtData,covariance=FALSE,nburn=2000,ngit=5000,maxit=200,tol=1e-03,tracing=TRUE,conf.level=0.95){
 
-  ## This block tracks the individuals assigned to a pool.
-  ## Note: 'gtData' must have the required specific structure.
-  Memb <- gtData[ ,-(1:5)]
-  N <- max(Memb)
-  maxAssign <- max(as.numeric(table(Memb[Memb > 0])))
-  ytm <- matrix(-9,N,maxAssign)
-  tmp <- as.matrix( Memb )
+  # Validating the initial prevalence value p0
+  if(!is.numeric(p0) || length(p0) != 1L || !is.finite(p0)) stop("p0 must be a finite numeric value.")
+  if(p0 < 0 || p0 > 1) stop("p0 must be between 0 and 1.")
+  p0 <- pmin(pmax(p0, 1e-12), 1-1e-12)
+
+  # Validating the group testing data object gtData
+  gtData <- as.matrix(gtData)
+  if(!is.numeric(gtData)) stop("gtData must have numeric values.")
+  if(ncol(gtData) < 6) stop("gtData must have at least six columns.")
+  if(nrow(gtData) == 0) stop("gtData must have at least one row.")
+  dimnames(gtData) <- NULL
+  if(any(!is.finite(gtData))) stop("All values in gtData must be finite.")
+  z.obs <- gtData[, 1]
+  if(any(z.obs != 0 & z.obs != 1)){
+    stop("Pooled test outcomes in column 1 of gtData must be either 0 or 1.")
+  }
+  psz <- gtData[, 2]
+  if(any(psz < 1) || any((psz%%1) != 0)){
+    stop("Pool sizes in column 2 of gtData must be positive integers.")
+  }
+
+  # This block tracks individuals assigned to each pool
+  Memb <- gtData[ ,-(1:5), drop=FALSE]
+  if(any(rowSums(Memb > 0) != psz)){
+    stop("Pool sizes in column 2 must equal the number of positive individual IDs in each row of gtData.")
+  }
+  dup.fn <- function(x){
+    x <- x[x > 0]
+    anyDuplicated(x) > 0
+  }
+  dup.member <- apply(Memb, 1, dup.fn)
+  if(any(dup.member)){
+    stop("An individual ID cannot appear more than once in the same pool.")
+  }
+  all.ids <- Memb[Memb > 0]
+  if(length(all.ids) == 0) stop("gtData must have at least one positive individual ID.")
+  if(any((all.ids%%1)!= 0)) stop("Individual IDs in gtData must be integers.")
+  ids <- sort(unique(all.ids))
+  if(!all(ids == seq_len(max(ids)))) {
+    stop("Individual IDs in gtData must be consecutive integers starting at 1.")
+  }
+  N <- max(ids)
+  maxAssign <- max(as.numeric(table(all.ids)))
+  ytm <- matrix(-9L,N,maxAssign)
   vec <- 1:nrow(gtData)
   for(d in 1:N){
-    tid <- tmp==d
+    tid <- Memb==d
     store <- NULL
-    for(i in 1:ncol(tmp)){
-      store <- c(store,vec[tid[ ,i]])
+    for(i in 1:ncol(Memb)) {
+      store <- c(store, vec[tid[ ,i]])
     }
     ytm[d,1:length(store)] <- sort(store)
+  }
+
+  ## Validating the EM arguments
+  if(!is.numeric(nburn) || length(nburn) != 1L || !is.finite(nburn) || nburn < 0 || nburn %% 1 != 0){
+    stop("nburn must be a non-negative integer.")
+  }
+  if(!is.numeric(ngit) || length(ngit) != 1L || !is.finite(ngit) || ngit <= 0 || ngit %% 1 != 0){
+    stop("ngit must be a positive integer.")
+  }
+  if(!is.numeric(maxit) || length(maxit) != 1L || !is.finite(maxit) || maxit <= 0 || maxit %% 1 != 0){
+    stop("maxit must be a positive integer.")
+  }
+  if(!is.numeric(tol) || length(tol) != 1L || !is.finite(tol) || tol <= 0){
+    stop("tol must be a positive finite numeric value.")
+  }
+  if(!is.logical(tracing) || length(tracing) != 1L || is.na(tracing)){
+    stop("tracing must be TRUE or FALSE.")
+  }
+
+  # Validating covariance & conf.level
+  if(!is.logical(covariance) || length(covariance) != 1L || is.na(covariance)) stop("covariance must be TRUE or FALSE.")
+  if(!is.numeric(conf.level) || length(conf.level) != 1L || !is.finite(conf.level) || conf.level <= 0 || conf.level >= 1){
+    stop("conf.level must be a number between 0 and 1.")
   }
 
   ## Generating individual true disease statuses
@@ -244,6 +290,9 @@ prop.gt <- function(p0,gtData,covariance=FALSE,nburn=2000,ngit=5000,maxit=200,to
   ## Some global variables
   Ycol <- ncol(Ytmat)
   SeSp <- gtData[ ,3:4]
+  if(any(SeSp < 0) || any(SeSp > 1)){
+    stop("Sensitivity and specificity values in columns 3 and 4 of gtData must be between 0 and 1.")
+  }
   Z <- gtData[ ,-(3:5)]
   Zrow <- nrow(Z)
   Zcol <- ncol(Z)
@@ -254,32 +303,38 @@ prop.gt <- function(p0,gtData,covariance=FALSE,nburn=2000,ngit=5000,maxit=200,to
   ## Initial value of the parameter
   p1 <- p0
   p0 <- p0 + 2*tol
-  s <- 1
+  s <- 0
   convergence <- 0
   
-  ## The EM algorithm starts here
+  ## EM algorithm starts here
   while(abs(p1-p0) > tol){ 
+    s <- s + 1
     p0 <- p1
     U <- matrix(stats::runif(N*GI),nrow=N,ncol=GI)
-    
+
     ## Gibbs sampling in Fortran to approximate the E-step
     res <- .Call("gbsonedhom_c",as.double(p0),as.integer(Ytmat),
                  as.integer(Z),as.integer(N),as.double(SeSp),as.integer(Ycol),
                  as.integer(Zrow),as.integer(Zcol),as.double(U),as.integer(GI),
                  as.integer(nburn), PACKAGE="groupTesting")
     temp <- sum( res )/ngit
-    
+
     ## M-step: The parameter p is updated here
     p1 <- temp/N
-    
-    ## Terminate the EM algorithm if it exceeds max iteration
+
+    ## Trace the progress
+    if(tracing){
+      cat(s, p1, "\n")
+    }
+    ## Check convergence
+    if(abs(p1-p0) <= tol){
+      break
+    }
+    ## Terminate the EM algorithm
+    ## if it exceeds max iteration
     if(s >= maxit){
       convergence <- 1
       break
-    }
-    s <- s + 1
-    if(tracing){
-      cat(s-1, p1, "\n")
     }
   }
 
@@ -300,7 +355,7 @@ prop.gt <- function(p0,gtData,covariance=FALSE,nburn=2000,ngit=5000,maxit=200,to
     se <- sqrt(covr2)
     alternative <- "two.sided"
     ## Calculate the test statistic:
-    z <- qnorm(ifelse(alternative=="two.sided",
+    z <- stats::qnorm(ifelse(alternative=="two.sided",
                      (1+conf.level)/2, conf.level))
     ## Find the confidence interval:
     CI <- c(pHat-z*se, pHat+z*se)
@@ -313,14 +368,14 @@ prop.gt <- function(p0,gtData,covariance=FALSE,nburn=2000,ngit=5000,maxit=200,to
 
   rownames(res) <- colnames(res) <- NULL
   rownames(res) <- "prop"
-  colnames(res) <- c("Estimate", "StdErr",                    
+  colnames(res) <- c("Estimate", "Std.Err",                    
                      paste(conf.level*100, "%lower", sep=""),
                      paste(conf.level*100, "%upper", sep=""))
 
   # Output
   list("param"       = p1,
        "covariance"  = covr2,
-	   "iterUsed"    = s-1,
+	   "iterUsed"    = s,
        "convergence" = convergence,
 	   "summary"     = res
 	   )

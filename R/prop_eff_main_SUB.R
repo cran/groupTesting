@@ -613,9 +613,13 @@ RTE.H2 <- function(kvec, p, Se, Sp){
   output <- rep(-9, length(kvec))
   for(i in 1:length(kvec)){
     k <- kvec[i]
-    config <- rbind( 1, 1:k )
-    res <- binGroup2::opChar1(algorithm="D2", p=p, Se=Se, Sp=Sp, hier.config=config, print.time=FALSE)
-    output[i] <- as.numeric(binGroup2::ExpTests(res)[2])
+    invisible(capture.output(
+      res <- binGroup::NI.Dorf(
+        p = p, Se = Se, Sp = Sp,
+        group.sz = k, obj.fn = "ET"
+        )
+    ))
+    output[i] <- round(as.numeric(res$opt.ET$value), 4)
   }
   cbind(kvec, 1, output)
 }
@@ -625,9 +629,10 @@ RTE.H3 <- function(kvec, p, Se, Sp){
   output <- rep(-9, nrow(kmat))
   for(i in 1:nrow(kmat)){
     gs <- kmat[i, ]
-    config <- rbind(rep(1,gs[1]), rep(1:(gs[1]/gs[2]),each=gs[2]), 1:gs[1])
-    res <- binGroup2::opChar1(algorithm="D3", p=p, Se=Se, Sp=Sp, hier.config=config, print.time=FALSE)
-    output[i] <- as.numeric(binGroup2::ExpTests(res)[2])
+    res <- binGroup::hierarchical.desc2(p = rep(p, gs[1]),
+                  I2 = rep(gs[2], gs[1]/gs[2]), I3 = NULL,
+                  se = Se, sp = Sp, order.p = FALSE)
+    output[i] <- round(as.numeric(res$ET/gs[1]), 4)
   }
   cbind(kmat, output)
 }
@@ -637,12 +642,15 @@ RTE.H4 <- function(kvec, p, Se, Sp){
   output <- rep(-9, nrow(kmat))
   for(i in 1:nrow(kmat)){
     gs <- kmat[i, ]
-    v1 <- rep(1, gs[1])
-    v2 <- rep(1:(gs[1]/gs[2]),each=gs[2])
-    v3 <- rep(1:(gs[1]/gs[3]),each=gs[3])
-    config <- rbind(v1, v2, v3, 1:gs[1])
-    res <- binGroup2::opChar1(algorithm="D4", p=p, Se=Se, Sp=Sp, hier.config=config, print.time=FALSE)
-    output[i] <- as.numeric(binGroup2::ExpTests(res)[2])
+    res <- binGroup::hierarchical.desc2(
+      p = rep(p, gs[1]),
+      I2 = rep(gs[2], gs[1]/gs[2]),
+      I3 = rep(gs[3], gs[1]/gs[3]),
+      se = Se,
+      sp = Sp,
+      order.p = FALSE
+    )
+    output[i] <- round(as.numeric(res$ET/gs[1]), 4)
   }
   cbind(kmat, output)
 }
@@ -651,8 +659,16 @@ RTE.A2 <- function(kvec, p, Se, Sp){
   output <- rep(-9, length(kvec))
   for(i in 1:length(kvec)){
     n <- kvec[i]
-    res <- binGroup2::opChar1(algorithm="A2", p=p, Se=Se, Sp=Sp, rowcol.sz=n, print.time=FALSE)
-    output[i] <- as.numeric(binGroup2::ExpTests(res)[2])
+    invisible(capture.output(
+      res <- binGroup::NI.Array(
+        p = p,
+        Se = Se,
+        Sp = Sp,
+        group.sz = n,
+        obj.fn = "ET"
+      )
+    ))
+    output[i] <- round(as.numeric(res$opt.ET$value), 4)
   }
   cbind(kvec, 1, output)
 }
@@ -661,8 +677,16 @@ RTE.A2M <- function(kvec, p, Se, Sp){
   output <- rep(-9, length(kvec))
   for(i in 1:length(kvec)){
     n <- kvec[i]
-    res <- binGroup2::opChar1(algorithm="A2M", p=p, Se=Se, Sp=Sp, rowcol.sz=n, print.time=FALSE)
-    output[i] <- as.numeric(binGroup2::ExpTests(res)[2])
+    invisible(capture.output(
+    res <- binGroup::NI.A2M(
+      p = p,
+      Se = Se,
+      Sp = Sp,
+      group.sz = n,
+      obj.fn = "ET"
+    )
+  ))
+    output[i] <- round(as.numeric(res$opt.ET$value), 4)
   }
   cbind(kvec^2, kvec, 1, output)
 }

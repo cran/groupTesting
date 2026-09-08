@@ -1,67 +1,53 @@
 #' EM Algorithm for Fitting Regression Models to Group Testing Data
 #'
-#' This function implements an expectation-maximization (EM) algorithm to fit regression models to group testing data, where pooled responses are related to individual covariates through a link function in the generalized linear model (GLM) family. The EM algorithm, which is outlined in Warasi (2023), finds the maximum likelihood estimate (MLE) for the vector of regression coefficients, \strong{beta}. The EM algorithm can model pooling data observed from \strong{any} group testing protocol used in practice, including hierarchical and array testing (Kim et al., 2007).
+#' This function implements an expectation-maximization (EM) algorithm to fit regression models to group testing data, where individual true disease statuses are treated as latent variables (i.e., missing data) and their disease probabilities are related to the covariates through a link function in the generalized linear model (GLM) family. The EM algorithm, which is outlined in Warasi (2023), finds the maximum likelihood estimate (MLE) for the vector of regression coefficients, \strong{beta}. The EM algorithm can model pooled testing data arising from a wide range of group testing protocols used in practice, including hierarchical and array testing (Kim et al., 2007).
 #'
 #' @useDynLib groupTesting, .registration=TRUE
 #'
-#' @param beta0 An initial value for the regression coefficients.
-#' @param gtData A matrix or data.frame consisting of the pooled test outcomes and other information from a group testing application. Needs to be specified as shown in the example below.
-#' @param X The design matrix.
+#' @param beta0 An initial value for the regression coefficients. Its length must equal the number of columns of \code{X}.
+#' @param gtData A matrix or data.frame consisting of the pooled test outcomes and other information from a group testing application. Must be structured according to the description and example provided in \code{\link{gtData}}.
+#' @param X An \eqn{N \times r} design matrix. For an intercept model, the first column should consist of 1's; otherwise, a model without intercept is fit.
 #' @param g An inverse link function in the GLM family.
-#' @param dg The first derivate of \code{g}. When NULL, a finite-difference approximation will be used.
-#' @param d2g The second derivate of \code{g}. When NULL, a finite-difference approximation will be used.
-#' @param grdMethod The finite-difference approximation method to be used for \code{dg} and \code{d2g}. See 'Details'.
-#' @param covariance When TRUE, the covariance matrix is calculated at the MLE. 
+#' @param dg The first derivative of \code{g}. Used only when \code{covariance=TRUE}. When NULL, a finite-difference approximation will be used.
+#' @param d2g The second derivative of \code{g}. Used only when \code{covariance=TRUE}. When NULL, a finite-difference approximation will be used.
+#' @param grdMethod The finite-difference approximation method used when \code{covariance=TRUE} and when \code{dg} or \code{d2g} is NULL.
+#' @param covariance Logical. If TRUE, the covariance matrix is calculated at the MLE. 
 #' @param nburn The number of initial Gibbs iterates to be discarded.
 #' @param ngit The number of Gibbs iterates to be used in the E-step after discarding \code{nburn} iterates as a burn-in period.
 #' @param maxit The maximum number of EM steps (iterations) allowed in the EM algorithm.
 #' @param tol Convergence tolerance used in the EM algorithm.
 #' @param tracing When TRUE, progress in the EM algorithm is displayed.
-#' @param conf.level Confidence level to be used for the Wald confidence interval.
+#' @param conf.level Confidence level for the Wald confidence intervals.
 #' @param ... Further arguments to be passed to \code{\link{optim}}. See 'Details'.
-#'
-#' @importFrom stats rbinom
-#' @importFrom stats runif
-#' @importFrom stats pchisq
-#' @importFrom stats optim
-#' @importFrom pracma fderiv
 #'
 #' @details
 #' 
-#' \code{gtData} must be specified as follows. Columns 1-5 consist of the pooled test outcomes (0 for negative and 1 for positive), pool sizes, pool-specific sensitivities, pool-specific specificities, and assay identification (ID) numbers, respectively. From column 6 onward, the pool member ID numbers need to be specified. Note that the ID numbers must start with 1 and increase consecutively up to \code{N}, the total number of individuals tested. \strong{For smaller pools, incomplete ID numbers must be filled out by -9 or any non-positive numbers} as shown in the example below. The design matrix \code{X} consists of invidual covariate information, such as age, sex, and symptoms, of the pool members located in column 6 onward.
+#' The EM algorithm consists of an E-step and an M-step that are 
+#' performed alternately. In the E-step, the expectation of the
+#' complete-data log-likelihood is approximated, whereas in the
+#' M-step, this quantity is maximized with respect to the regression
+#' coefficient vector using \code{\link{optim}}. The EM iterations continue
+#' until convergence of the regression coefficient estimates is
+#' achieved; see Warasi (2023) for further details.
 #' 
-#' |     |  Z  |  psz  |   Se   |   Sp   |  Assay  |  Mem1  |  Mem2  |  Mem3  |  Mem4  |  Mem5  |  Mem6  |
-#' |:---:|:---:|:-----:|:------:|:------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|:-------:|       
-#' | Pool:1   |  1  |   6   |  0.90  |  0.92  |    1    |    1    |    2    |    3    |    4    |    5    |    6    |
-#' | Pool:2   |  0  |   6   |  0.90  |  0.92  |    1    |    7    |    8    |    9    |   10    |    11   |   12    |
-#' | Pool:3   |  1  |   2   |  0.95  |  0.96  |    2    |    1    |    2    |   -9    |   -9    |    -9   |   -9    |
-#' | Pool:4   |  0  |   2   |  0.95  |  0.96  |    2    |    3    |    4    |   -9    |   -9    |    -9   |   -9    |
-#' | Pool:5   |  1  |   2   |  0.95  |  0.96  |    2    |    5    |    6    |   -9    |   -9    |    -9   |   -9    |
-#' | Pool:6   |  0  |   1   |  0.92  |  0.90  |    3    |    1    |   -9    |   -9    |   -9    |    -9   |   -9    |
-#' | Pool:7   |  1  |   1   |  0.92  |  0.90  |    3    |    2    |   -9    |   -9    |   -9    |    -9   |   -9    |
-#' | Pool:8   |  0  |   1   |  0.92  |  0.90  |    3    |    5    |   -9    |   -9    |   -9    |    -9   |   -9    |
-#' | Pool:9   |  0  |   1   |  0.92  |  0.90  |    3    |    6    |   -9    |   -9    |   -9    |    -9   |   -9    |
-#' 
-#' This is an example of \code{gtData}, where 12 individuals are assigned to 2 non-overlapping initial pools and then tested based on the 3-stage hierarchical protocol. The test outcomes, \code{Z}, from 9 pools are in column 1. In three stages, different pool sizes (6, 2, and 1), sensitivities, specificities, and assays are used. The ID numbers of the pool members are shown in columns 6-11. The row names and column names are not required. Note that the EM algorithm can accommodate any group testing data including those described in Kim et al. (2007). For individual testing data, the pool size in column 2 is 1 for all pools.
-#' 
-#' \code{X} is an \eqn{N}x\eqn{k} design matrix, where each column represents a vector of individual covariate values. For an intercept model, the first column values must be 1. The column (covariate) names of X, such as 'age' and 'sex', will be displayed in the estimation summary. When column names are missing (NULL), the names that will be displayed by default are 'Intercept', 'x1', 'x2', and so on.
+#' \code{X} is an \eqn{N \times r} design matrix, where each column represents a vector of individual covariate values. For an intercept model, the entries in the first column must be 1. The column (covariate) names of X, such as 'age' and 'sex', will be displayed in the estimation summary. When column names are missing (NULL), the names that will be displayed by default are 'Intercept', 'x1', 'x2', and so on.
 #'  
-#' The EM algorithm implements a Gibbs sampler to approximate the expectation in the E-step. Under each EM iteration, \code{ngit} Gibbs samples are retained for these purposes after discarding the initial \code{nburn} samples.  
+#' The EM algorithm implements a Gibbs sampler to approximate the expectation in the E-step. Under each EM iteration, \code{ngit} Gibbs samples are retained to approximate the expectation after discarding the initial \code{nburn} samples as burn-in.  
 #' 
-#' \code{g} relates the pooled responses Z (column 1 in \code{gtData}) to \code{X}. \code{dg} and \code{d2g} can be specified analogously. These characteristics can be obtained from \code{\link{glmLink}} for the common links: logit, probit, and complementary log-log.
+#' The inverse link function \code{g} relates the individual disease probabilities to the covariates in \code{X}. \code{dg} and \code{d2g} can be specified analogously. These characteristics can be obtained from \code{\link{glmLink}} for the common links: logit, probit, and complementary log-log.
 #' 
-#' \code{grdMethod} is used only when dg and d2g are NULL, where a finite-difference approximation is implemented by the function \code{fderiv} from the package 'pracma'.
+#' When \code{covariance=TRUE}, \code{grdMethod} is used only when \code{dg} or \code{d2g} is NULL, in which case a finite-difference approximation is implemented using the function \code{fderiv} from the package 'pracma'.
 #' 
 #' The optimization routine \code{\link{optim}} is used to complete the M-step with the default method 'Nelder-Mead'. The argument ... allows the user to change the default method as well as other arguments in \code{\link{optim}}.  
 #'
-#' The covariance matrix is calculated by an appeal to the missing data principle and the method outlined in Louis (1982).
+#' The covariance matrix is calculated using the missing data principle and the method outlined in Louis (1982).
 #'
 #' @return A list with components:
 #' \item{param}{The MLE of the regression coefficients.}
 #' \item{covariance}{Estimated covariance matrix for the regression coefficients.}
-#' \item{iterUsed}{The number of EM iterations needed for convergence.}
+#' \item{iterUsed}{The number of EM iterations performed.}
 #' \item{convergence}{0 if the EM algorithm converges successfully and 1 if the iteration limit \code{maxit} has been reached.}
-#' \item{summary}{Estimation summary with Wald confidence interval.}
+#' \item{summary}{Estimation summary with Wald confidence intervals.}
 #' 
 #' @export
 #' 
@@ -75,7 +61,7 @@
 #' Warasi M. (2023). groupTesting: An R Package for Group Testing Estimation. \emph{Communications in Statistics-Simulation and Computation}, 52:6210-6224.
 #' 
 #' @seealso
-#' \code{\link{hier.gt.simulation}} and \code{\link{array.gt.simulation}} for group testing data simulation, and \code{\link{prop.gt}} for estimation of a disease prevalence from group testing data.
+#' \code{\link{hier.gt.simulation}} and \code{\link{array.gt.simulation}} for group testing data simulation, \code{\link{prop.gt}} for estimation of a disease prevalence from group testing data, and \code{\link{gtData}} for information about the required data structure.
 #'
 #' @examples
 #'
@@ -171,8 +157,8 @@
 #' # Finding g, dg, and d2g from the function 'glmLink':  
 #' res0 <- glmLink(fn.name="logit")  
 #' g <- res0$g            # Logit inverse link g()
-#' dg <- res0$dg          # The exact first derivate of g
-#' d2g <- res0$d2g        # The exact second derivate of g
+#' dg <- res0$dg          # The exact first derivative of g
+#' d2g <- res0$d2g        # The exact second derivative of g
 #' pReg <- g(X%*%param)   # Individual probabilities
 #' gtOut <- array.gt.simulation(N,pReg,protocol,n,Se,Sp,assayID)$gtData
 #' 
@@ -298,38 +284,112 @@
 #'
 glm.gt <- function(beta0,gtData,X,g,dg=NULL,d2g=NULL,grdMethod=c("central","forward","backward"),covariance=FALSE,nburn=2000,ngit=5000,maxit=200,tol=1e-03,tracing=TRUE,conf.level=0.95,...){
 
-  ## Objective function to be maximized in the M-step
+  if(!is.function(g)) stop("g must be a function.")
+  ## Objective function to be optimized in the M-step
   Q.beta <- function(param,X,eyij){
     p <- apply(X%*%param, 2, g)
+    eps <- 1e-12
+    p <- pmax(eps, pmin(1-eps, p))
     -sum(eyij*log(p)+(1-eyij)*log(1-p))
   }
 
-  ## This block tracks the individuals assigned to a pool.
-  ## Note: 'gtData' must have the required specific structure.
-  Memb <- gtData[ ,-(1:5)]
-  N <- max(Memb)
-  maxAssign <- max(as.numeric(table(Memb[Memb > 0])))
-  ytm <- matrix(-9,N,maxAssign)
-  tmp <- as.matrix( Memb )
+  # Validating the design matrix X
+  X <- as.matrix(X)
+  if(!is.numeric(X)) stop("X must have numeric values.")
+  if(nrow(X)==0 || ncol(X)==0) stop("X must have at least one row and one column.")
+  if(any(!is.finite(X))) stop("All values in X must be finite.")
+
+  # Validating the initial parameter value beta0
+  if(!is.numeric(beta0) || length(beta0) != ncol(X) || any(!is.finite(beta0))){
+    stop("beta0 must be a finite numeric vector with length equal to ncol(X).")
+  }
+  beta0 <- as.numeric(beta0)
+
+  # Validating the group testing data object gtData
+  gtData <- as.matrix(gtData)
+  if(!is.numeric(gtData)) stop("gtData must have numeric values.")
+  if(ncol(gtData) < 6) stop("gtData must have at least six columns.")
+  if(nrow(gtData) == 0) stop("gtData must have at least one row.")
+  dimnames(gtData) <- NULL
+  if(any(!is.finite(gtData))) stop("All values in gtData must be finite.")
+  z.obs <- gtData[, 1]
+  if(any(z.obs != 0 & z.obs != 1)){
+    stop("Pooled test outcomes in column 1 of gtData must be either 0 or 1.")
+  }
+  psz <- gtData[, 2]
+  if(any(psz < 1) || any((psz%%1) != 0)){
+    stop("Pool sizes in column 2 of gtData must be positive integers.")
+  }
+
+  ## Validating EM arguments
+  if(!is.numeric(nburn) || length(nburn) != 1L || !is.finite(nburn) || nburn < 0 || nburn %% 1 != 0){
+    stop("nburn must be a non-negative integer.")
+  }
+  if(!is.numeric(ngit) || length(ngit) != 1L || !is.finite(ngit) || ngit <= 0 || ngit %% 1 != 0){
+    stop("ngit must be a positive integer.")
+  }
+  if(!is.numeric(maxit) || length(maxit) != 1L || !is.finite(maxit) || maxit <= 0 || maxit %% 1 != 0){
+    stop("maxit must be a positive integer.")
+  }
+  if(!is.numeric(tol) || length(tol) != 1L || !is.finite(tol) || tol <= 0){
+    stop("tol must be a positive finite numeric value.")
+  }
+  if(!is.logical(tracing) || length(tracing) != 1L || is.na(tracing)){
+    stop("tracing must be TRUE or FALSE.")
+  }
+
+  # Validating covariance & conf.level
+  if(!is.logical(covariance) || length(covariance) != 1L || is.na(covariance)) stop("covariance must be TRUE or FALSE.")
+  if(!is.numeric(conf.level) || length(conf.level) != 1L || !is.finite(conf.level) || conf.level <= 0 || conf.level >= 1){
+    stop("conf.level must be a number between 0 and 1.")
+  }
+
+  # This block tracks individuals assigned to each pool
+  Memb <- gtData[ ,-(1:5), drop=FALSE]
+  if(any(rowSums(Memb > 0) != psz)){
+    stop("Pool sizes in column 2 must equal the number of positive individual IDs in each row of gtData.")
+  }
+  dup.fn <- function(x){
+    x <- x[x > 0]
+    anyDuplicated(x) > 0
+  }
+  dup.member <- apply(Memb, 1, dup.fn)
+  if(any(dup.member)){
+    stop("An individual ID cannot appear more than once in the same pool.")
+  }
+  all.ids <- Memb[Memb > 0]
+  if(length(all.ids) == 0) stop("gtData must have at least one positive individual ID.")
+  if(any((all.ids%%1)!= 0)) stop("Individual IDs in gtData must be integers.")
+  ids <- sort(unique(all.ids))
+  if(!all(ids == seq_len(max(ids)))) {
+    stop("Individual IDs in gtData must be consecutive integers starting at 1.")
+  }
+  N <- max(ids)
+  if(nrow(X) != N) stop("Number of rows in X must equal the number of individuals tested.")
+
+  maxAssign <- max(as.numeric(table(all.ids)))
+  ytm <- matrix(-9L,N,maxAssign)
   vec <- 1:nrow(gtData)
   for(d in 1:N){
-    tid <- tmp==d
+    tid <- Memb==d
     store <- NULL
-    for(i in 1:ncol(tmp)){
-      store <- c(store,vec[tid[ ,i]])
+    for(i in 1:ncol(Memb)) {
+      store <- c(store, vec[tid[ ,i]])
     }
     ytm[d,1:length(store)] <- sort(store)
   }
 
   ## Generating individual true disease statuses
   ## at the initial parameter value beta0
-  X <- as.matrix(X)
   Yt <- stats::rbinom(N,1,apply(X%*%beta0,2,g))
   Ytmat <- cbind(Yt,rowSums(ytm>0),ytm)
 
   ## Some global variables  
   Ycol <- ncol(Ytmat)
   SeSp <- gtData[ ,3:4]
+  if(any(SeSp < 0) || any(SeSp > 1)){
+    stop("Sensitivity and specificity values in columns 3 and 4 of gtData must be between 0 and 1.")
+  }
   Z <- gtData[ ,-(3:5)]
   Zrow <- nrow(Z)
   Zcol <- ncol(Z)
@@ -340,13 +400,14 @@ glm.gt <- function(beta0,gtData,X,g,dg=NULL,d2g=NULL,grdMethod=c("central","forw
   ## Initial value of the parameter
   param1 <- beta0
   param0 <- beta0 + 2*tol
-  s <- 1
+  s <- 0
   convergence <- 0
 
   ## The EM algorithm starts here  
-  while(max(abs(param1-param0)) > tol){  # Start iterating
+  while(max(abs(param1-param0)) > tol){
+    s <- s + 1
     param0 <- param1
-	  pvec <- apply(X%*%param0, 2, g)
+    pvec <- apply(X%*%param0, 2, g)
     U <- matrix(stats::runif(N*GI),nrow=N,ncol=GI)
 
     ## Gibbs sampling in Fortran to approximate the E-step
@@ -359,20 +420,28 @@ glm.gt <- function(beta0,gtData,X,g,dg=NULL,d2g=NULL,grdMethod=c("central","forw
     ## M-step: The parameter beta is updated here
     param1 <- stats::optim(par=param0,fn=Q.beta,X=X,eyij=ey,hessian=FALSE, ...)$par
 
-    ## Terminate the EM algorithm if it exceeds max iteration
-	if(s >= maxit){
-      convergence <- 1
-	  break
-    }
-    s <- s + 1
+    ## Trace the progress
     if(tracing){
-      cat(s-1, param1, "\n")
+      cat(s, param1, "\n")
+    }
+    ## Check convergence
+    if(max(abs(param1-param0)) <= tol){
+      break
+    }
+    ## Terminate the EM algorithm
+    ## if it exceeds max iteration
+    if(s >= maxit){
+      convergence <- 1
+      break
     }
   }
 
   ## Covariance matrix in Fortran using Louis's (1982) method
   covr2 <- NULL
   if(covariance){
+    grdMethod <- match.arg(grdMethod)
+    if(!is.null(dg) && !is.function(dg)) stop("dg must be NULL or a function.")
+    if(!is.null(d2g) && !is.function(d2g)) stop("d2g must be NULL or a function.")
     if( !is.null(dg) ){
       dG <- apply(X%*%param1, 2, dg)
     }else{
@@ -404,8 +473,7 @@ glm.gt <- function(beta0,gtData,X,g,dg=NULL,d2g=NULL,grdMethod=c("central","forw
     CI <- matrix(-9, blen, 2)
     alternative <- rep("two.sided",blen)
     for(i in 1:blen){
-      z[i] <- qnorm(ifelse(alternative[i]=="two.sided",
-                   (1+conf.level)/2,conf.level))
+      z[i] <- stats::qnorm(ifelse(alternative[i]=="two.sided", (1+conf.level)/2,conf.level))
       ## Find the confidence interval:
       CI[i, ] <- c(betaHat[i]-z[i]*se[i],betaHat[i]+z[i]*se[i])
     }
@@ -429,7 +497,7 @@ glm.gt <- function(beta0,gtData,X,g,dg=NULL,d2g=NULL,grdMethod=c("central","forw
   # Output
   list("param"       = param1,
        "covariance"  = covr2,
-	   "iterUsed"    = s-1,
+	   "iterUsed"    = s,
 	   "convergence" = convergence,
 	   "summary"     = res
 	   )
